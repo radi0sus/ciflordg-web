@@ -19,34 +19,50 @@
   
   var toastTimer = null;
 
-  function showToast(message) {
+  function showToast(message, type) {
     var toast = $("toast");
-
+  
     if (!toast) {
       return;
     }
-
+  
     toast.textContent = message;
+  
+    toast.classList.remove("warning", "error");
+  
+    if (type === "warning") {
+      toast.classList.add("warning");
+    }
+  
+    if (type === "error") {
+      toast.classList.add("error");
+    }
+  
     toast.classList.add("show");
-
+  
     if (toastTimer) {
       clearTimeout(toastTimer);
     }
-
+  
     toastTimer = setTimeout(function () {
-      toast.classList.remove("show");
+      toast.classList.remove("show", "warning", "error");
     }, 2400);
-  }  
+  }
   
   function hasLoadedCif(state) {
     return !!(state && state.hasLoadedCif);
   }
 
+  function selectionTabIsActive() {
+    var tab = document.querySelector(".tab[data-tab='selection']");
+    return !!(tab && tab.classList.contains("active"));
+  }
+
   function updateActionButtons(state) {
     var enabled = hasLoadedCif(state);
-
+    var previewCopyEnabled = enabled && selectionTabIsActive();
+  
     [
-      "btn-copy-formatted",
       "btn-copy-md",
       "btn-copy-text",
       "btn-download-rtf",
@@ -55,12 +71,18 @@
       "btn-download-csv"
     ].forEach(function (id) {
       var button = $(id);
-
+  
       if (button) {
         button.disabled = !enabled;
       }
     });
-  }  
+  
+    var formatted = $("btn-copy-formatted");
+  
+    if (formatted) {
+      formatted.disabled = !previewCopyEnabled;
+    }
+  }
 
   function escapeHtml(str) {
     return String(str || "")
@@ -390,18 +412,22 @@
     }
   }
 
-  function bindTabs() {
+  function bindTabs(onChange) {
     document.querySelectorAll(".tab").forEach(function (tab) {
       tab.addEventListener("click", function () {
         var name = tab.getAttribute("data-tab");
-
+  
         document.querySelectorAll(".tab").forEach(function (t) {
           t.classList.toggle("active", t === tab);
         });
-
+  
         document.querySelectorAll(".tab-page").forEach(function (page) {
           page.classList.toggle("active", page.id === "tab-" + name);
         });
+  
+        if (typeof onChange === "function") {
+          onChange(name);
+        }
       });
     });
   }
@@ -1448,27 +1474,40 @@
 
     bindClick("btn-copy-formatted", function () {
       if (!requireCifLoaded()) return;
-
-      var preview = $("report-preview");
-
-      if (!preview) {
+    
+      var selectionTab = document.querySelector(".tab[data-tab='selection']");
+    
+      if (selectionTab && !selectionTab.classList.contains("active")) {
+        showToast("Open Selection & Preview to copy the formatted report", "warning");
         return;
       }
-
+    
+      var preview = $("report-preview");
+    
+      if (!preview) {
+        showToast("Report preview not available");
+        return;
+      }
+    
       var range = document.createRange();
       var selection = window.getSelection();
-
+    
       selection.removeAllRanges();
       range.selectNodeContents(preview);
       selection.addRange(range);
-
+    
       try {
-        document.execCommand("copy");
-        showToast("Copied formatted preview to clipboard");
+        var ok = document.execCommand("copy");
+    
+        if (ok) {
+          showToast("Copied report preview to clipboard");
+        } else {
+          showToast("Formatted copy failed", "error");
+        }
       } catch (e) {
         alert("Formatted copy failed. Please select the preview manually and press Ctrl+C.");
       }
-
+    
       selection.removeAllRanges();
     });
   }
@@ -1548,7 +1587,9 @@
       state.reportOptions = state.reportOptions || {};
       state.reportOptions.middleAtomOnly = !!state.reportOptions.middleAtomOnly;
 
-      bindTabs();
+      bindTabs(function () {
+        updateActionButtons(state);
+      });
 
       var renderAll = function () {
         updateSelectionControls(state);
