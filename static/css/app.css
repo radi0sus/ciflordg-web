@@ -724,3 +724,82 @@ sup {
 .report-preview td {
   overflow-wrap: anywhere;
 }
+
+/* -------------------------------------------------
+   Geometry Parameters tab
+   ------------------------------------------------- */
+
+#tab-geometry .filter-grid {
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+}
+
+.geometry-ligand-table,
+.geometry-results-table {
+  table-layout: fixed;
+}
+
+.geometry-ligand-table th:nth-child(1),
+.geometry-ligand-table td:nth-child(1) {
+  width: 3.5rem;
+  text-align: center;
+}
+
+.geometry-ligand-table th:nth-child(2),
+.geometry-ligand-table td:nth-child(2) {
+  width: 28%;
+}
+
+.geometry-ligand-table th:nth-child(3),
+.geometry-ligand-table td:nth-child(3) {
+  width: 24%;
+}
+
+.geometry-ligand-table th:nth-child(4),
+.geometry-ligand-table td:nth-child(4) {
+  width: auto;
+}
+
+.geometry-results-table {
+  table-layout: fixed;
+}
+
+.geometry-results-table th:nth-child(1),
+.geometry-results-table td:nth-child(1) {
+  width: 10%;
+}
+
+.geometry-results-table th:nth-child(2),
+.geometry-results-table td:nth-child(2) {
+  width: 6%;
+}
+
+.geometry-results-table th:nth-child(3),
+.geometry-results-table td:nth-child(3) {
+  width: 24%;
+}
+
+.geometry-results-table th:nth-child(4),
+.geometry-results-table td:nth-child(4) {
+  width: 28%;
+}
+
+.geometry-results-table th:nth-child(5),
+.geometry-results-table td:nth-child(5),
+.geometry-results-table th:nth-child(6),
+.geometry-results-table td:nth-child(6),
+.geometry-results-table th:nth-child(7),
+.geometry-results-table td:nth-child(7),
+.geometry-results-table th:nth-child(8),
+.geometry-results-table td:nth-child(8) {
+  width: 8%;
+}
+
+.geometry-results-table th:nth-child(9),
+.geometry-results-table td:nth-child(9) {
+  width: 8%;
+}
+
+.geometry-results-table td:nth-child(3),
+.geometry-results-table td:nth-child(4) {
+  overflow-wrap: anywhere;
+}

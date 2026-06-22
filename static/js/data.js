@@ -46,7 +46,15 @@
       averageOptions: {
         middleAtomOnly: false
       },
-
+      
+      geometryOptions: {
+        centerElement: "",
+        centerAtom: "",
+        selectedLigandKeysByCenter: {}
+      },
+      
+      geometryResults: [],
+      
       items: {},
       cell: null,
       atoms: [],

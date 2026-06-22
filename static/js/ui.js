@@ -1555,6 +1555,11 @@
         renderMeta(state);
         renderSelectionTables(state);
         renderAverage(state);
+      
+        if (CIFLord.GeometryParameters) {
+          CIFLord.GeometryParameters.render(state);
+        }
+      
         renderInteratomic(state);
         renderPreview(state);
         updateActionButtons(state);
@@ -1568,7 +1573,11 @@
       bindInteratomicButtons(state, renderAll);
       bindExportButtons(state);
       bindFileLoading(state, renderAll);
-
+      
+      if (CIFLord.GeometryParameters) {
+        CIFLord.GeometryParameters.init(state, renderAll);
+      }
+      
       renderAll();
     }
   };

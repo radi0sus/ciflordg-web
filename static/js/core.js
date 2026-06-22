@@ -667,6 +667,12 @@
         id: "b" + (i + 1),
         source: "cif",
         kind: "bond",
+      
+        atom1Label: a1,
+        atom2Label: a2,
+        sym1Code: sym1,
+        sym2Code: sym2,
+      
         atomsHtml: escapeAtom(a1) + symSup(s1) + "&ndash;" + escapeAtom(a2) + symSup(s2),
         atomsText: a1 + symText(s1) + "-" + a2 + symText(s2),
         value: distance,
@@ -1265,6 +1271,14 @@
       state.interatomicSearchResults = [];
       state.symmetryNotes = symmetryNotes;
       state.lastSingleDistance = null;
+      
+      state.geometryOptions = {
+        centerElement: "",
+        centerAtom: "",
+        selectedLigandKeysByCenter: {}
+      };
+      
+      state.geometryResults = [];
 
       state.sortOptions = {
         bonds: "cif",

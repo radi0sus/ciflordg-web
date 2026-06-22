@@ -119,6 +119,7 @@
       <nav class="tabs" aria-label="Main sections">
         <button class="tab active" type="button" data-tab="selection">Selection & Preview</button>
         <button class="tab" type="button" data-tab="average">Average</button>
+        <button class="tab" type="button" data-tab="geometry">Geometry Parameters</button>
         <button class="tab" type="button" data-tab="interatomic">Interatomic Distances</button>
       </nav>
 
@@ -191,7 +192,53 @@
         </section>
       </section>
 
-      <!-- TAB 3: Interatomic Distances -->
+      <!-- TAB 3: Geometry Parameters -->
+      <section class="tab-page" id="tab-geometry">
+        <section class="panel">
+          <h2>Coordination selection</h2>
+      
+          <div class="filter-grid">
+            <label>
+              Element
+              <select id="geom-center-element"></select>
+            </label>
+      
+            <label>
+              Central atom
+              <select id="geom-center-atom"></select>
+            </label>
+          </div>
+      
+          <p class="hint">
+            Ligand atoms are taken from the CIF geometry bond table. Adjust the ligand selection manually if disorder,
+            alternative positions, or unwanted contacts are present.
+          </p>
+      
+          <h3>Ligand atoms from CIF geometry bond table</h3>
+          <div id="geom-ligands"></div>
+      
+          <div class="table-toolbar">
+            <button type="button" id="btn-geom-calculate">Calculate</button>
+          </div>
+        </section>
+      
+        <section class="panel">
+          <h2>Calculated geometry parameters</h2>
+      
+          <p class="hint">
+            CShM values are calculated for coordination numbers 2–6 and are shown as a comparison between the available
+            ideal shapes for the current coordination number. Descriptors include τ₄, τ₄′, τ₅, and coordination polyhedron volume.
+          </p>
+      
+          <div class="table-toolbar">
+            <button type="button" id="btn-geom-clear">Clear calculated parameters</button>
+          </div>
+      
+          <div id="geom-results"></div>
+        </section>
+      </section>
+
+      <!-- TAB 4: Interatomic Distances -->
       <section class="tab-page" id="tab-interatomic">
         <div class="two-column">
           <section class="panel">
@@ -353,6 +400,8 @@
   <script src="static/js/parser.js"></script>
   <script src="static/js/core.js"></script>
   <script src="static/js/reports.js"></script>
+  <script src="static/js/cshm.js"></script>
+  <script src="static/js/geometry-parameters.js"></script>
   <script src="static/js/ui.js"></script>
   <script src="static/js/app.js"></script>
 </body>
