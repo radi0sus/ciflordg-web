@@ -1,6 +1,6 @@
 # CIFLord Web
 
-Serverless browser application for CIF preview, crystallographic report generation, average calculations, and interatomic distance analysis.
+Serverless browser application for CIF preview, crystallographic report generation, average calculations, geometry-parameter analysis, and interatomic distance analysis.
 
 ## Start
 
@@ -25,9 +25,13 @@ This web version provides the useful analysis and reporting parts of the origina
 - Optional filtering of bond angles by middle atom only
 - HTML preview of crystallographic report data
 - Average calculations for bond lengths, interatomic distances, and bond angles
+- Geometry-parameter calculations from CIF geometry bonds
+- Continuous Shape Measures (CShM) for coordination numbers 2–6
+- Coordination descriptors such as τ₄, τ₄′, τ₅, and coordination polyhedron volume
 - Interatomic distance calculation with estimated e.s.d.
 - Interatomic distance range search
 - Optional inclusion of added interatomic distances in preview, export, and average calculations
+- Optional inclusion of calculated geometry parameters in the generated report
 - Export as Markdown, plain text, CSV, and RTF
 - Copy as formatted preview, Markdown, or plain text
 
@@ -66,6 +70,14 @@ The current version contains a working browser-only implementation with:
   - SI-style unit labels
   - separate or merged display of added distances
 - Average tab with grouped statistics
+- Geometry Parameters tab:
+  - element and atom selection
+  - ligand atoms taken from the CIF geometry bond table
+  - manual ligand inclusion/exclusion
+  - CShM comparison for coordination numbers 2–6
+  - τ₄, τ₄′, τ₅, and coordination polyhedron volume
+  - stored calculated geometry-parameter results
+  - optional inclusion of geometry-parameter results in the generated report
 - Interatomic distances tab:
   - single distance calculation
   - symmetry operation and translation code selection
@@ -138,6 +150,37 @@ The application uses, where available, data such as:
 
 Some common alternative tag names are also supported.
 
+## Geometry parameters and CShM
+
+The Geometry Parameters tab calculates coordination geometry descriptors for a selected atom.
+
+Ligand atoms are taken from the CIF geometry bond table rather than from automatic radius-based neighbour searching. This keeps the calculation consistent with the bond information provided by the CIF.
+
+The user can manually include or exclude ligand atoms before calculating the geometry parameters. This is useful for structures with disorder, alternative positions, or contacts that should not be part of the coordination sphere.
+
+The tab can calculate:
+
+- Continuous Shape Measures (CShM) for coordination numbers 2–6
+- τ₄ for four-coordinate centers
+- τ₄′ for four-coordinate centers
+- τ₅ for five-coordinate centers
+- coordination polyhedron volume `V`
+
+The octahedricity parameter `O` is intentionally not included.
+
+Calculated geometry-parameter results are stored in the tab until they are removed or the CIF is reloaded.
+
+Each calculated result can be included in or excluded from the generated report. Included geometry-parameter results are added as a separate `Geometry parameters` table in the report preview and in Markdown, plain text, and RTF exports.
+
+Limitations:
+
+- The calculation depends on the CIF geometry bond table.
+- If relevant bonds are missing from the CIF, the coordination sphere may be incomplete.
+- Symmetry-generated ligand atoms are handled where symmetry information is provided in the CIF bond table.
+- Disorder and alternative positions may require manual ligand selection.
+- CShM values are only available for coordination numbers 2–6.
+- Geometry parameters are not currently included in the CSV export.
+
 ## Interatomic distances
 
 The Interatomic Distances tab can calculate additional distances from atom coordinates, unit-cell parameters, symmetry operations, and translation codes.
@@ -191,20 +234,25 @@ It preserves basic formatting such as:
 - subscripts
 - tables
 - symmetry notes
+- geometry-parameter tables
 
 ### Markdown
 
 Markdown export is intended for readable text-based reports and further conversion using tools such as Pandoc.
 
+Included geometry-parameter results are exported as a Markdown table.
+
 ### Plain text
 
 Plain text export provides a simple fixed-width readable report.
+
+Included geometry-parameter results are exported as an aligned plain-text table.
 
 ### CSV
 
 CSV export is intended for reuse in spreadsheet or data-processing software.
 
-The CSV contains selected/exported numerical geometry data.
+The CSV contains selected/exported numerical geometry data from bond lengths, angles, and added interatomic distances.
 
 The current CSV format uses:
 
@@ -220,6 +268,8 @@ where:
 - `value` is the numerical value only, for example `1.844`
 
 Typographic dashes are converted to ASCII hyphens in the CSV output.
+
+Geometry-parameter results are not currently included in the CSV export.
 
 ## Notes on copy/paste
 
@@ -244,19 +294,10 @@ Therefore:
 - Disorder handling is limited.
 - Occupancy handling is limited.
 - Hydrogen treatment depends on the data present in the CIF.
+- Geometry-parameter calculations depend on the CIF geometry bond table.
+- CShM calculations are available for coordination numbers 2–6.
+- Geometry-parameter results are not currently included in CSV export.
 - No structure drawing or ORTEP plot is currently included.
 - No CIF editing or rewriting is provided.
 - No LaTeX or PDF export is provided directly.
 
-## Possible future additions
-
-Possible future improvements include:
-
-- ORTEP/structure plot tab
-- SVG or PNG structure export
-- Improved handling of disorder and occupancies
-- More detailed validation warnings
-- Optional e.s.d.-based average statistics
-- More configurable CSV export
-- Additional report templates
-- Optional Pandoc-oriented Markdown output
