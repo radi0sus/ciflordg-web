@@ -635,6 +635,111 @@
     return rows;
   }
 
+  function geometryCshmEntries(result) {
+    var cshm = result.cshm || {};
+  
+    return Object.keys(cshm).map(function (key) {
+      return {
+        label: key,
+        value: cshm[key]
+      };
+    }).filter(function (entry) {
+      return typeof entry.value === "number" && isFinite(entry.value);
+    }).sort(function (a, b) {
+      return a.value - b.value;
+    });
+  }
+  
+  function geometryHasValues(result) {
+    var descriptors = result.descriptors || {};
+    var keys = ["τ₄", "τ₄′", "τ₅", "V /Å³"];
+  
+    if (geometryCshmEntries(result).length) {
+      return true;
+    }
+  
+    return keys.some(function (key) {
+      return typeof descriptors[key] === "number" && isFinite(descriptors[key]);
+    });
+  }
+  
+  function geometryLigandsText(result) {
+    return (result.ligands || []).map(function (ligand) {
+      var label = ligand.label || "";
+      var sym = ligand.symmetry && ligand.symmetry !== "—"
+        ? " [" + ligand.symmetry + "]"
+        : "";
+  
+      return label + sym;
+    }).join(", ");
+  }
+  
+  function geometryCshmHtml(result) {
+    var entries = geometryCshmEntries(result);
+  
+    if (!entries.length) {
+      return "—";
+    }
+  
+    return entries.map(function (entry, index) {
+      var text = escapeHtml(entry.label + " " + Number(entry.value).toFixed(4));
+  
+      return index === 0
+        ? "<strong>" + text + "</strong>"
+        : text;
+    }).join("; ");
+  }
+  
+  function geometryCshmText(result) {
+    var entries = geometryCshmEntries(result);
+  
+    if (!entries.length) {
+      return "—";
+    }
+  
+    return entries.map(function (entry) {
+      return entry.label + " " + Number(entry.value).toFixed(4);
+    }).join("; ");
+  }
+  
+  function geometryCshmRtf(result) {
+    var entries = geometryCshmEntries(result);
+  
+    if (!entries.length) {
+      return rtfEscape("—");
+    }
+  
+    return entries.map(function (entry, index) {
+      var text = rtfEscape(entry.label + " " + Number(entry.value).toFixed(4));
+  
+      return index === 0
+        ? "{\\b " + text + "}"
+        : text;
+    }).join(rtfEscape("; "));
+  }
+  
+  function geometryCshmMarkdown(result) {
+    var entries = geometryCshmEntries(result);
+  
+    if (!entries.length) {
+      return "—";
+    }
+  
+    return entries.map(function (entry, index) {
+      var text = entry.label + " " + Number(entry.value).toFixed(4);
+  
+      return index === 0
+        ? "**" + text + "**"
+        : text;
+    }).join("; ");
+  }
+  
+  function geometryValue(value) {
+    return typeof value === "number" && isFinite(value)
+      ? Number(value).toFixed(4)
+      : "—";
+  }
+
   function getReportModel(state) {
     var reportFilter = state.selectionFilter || {
       element: "all",
@@ -675,12 +780,17 @@
     var allForSymmetry = mergedBonds.concat(separateAdded).concat(angles);
     var symmetryNotes = CIFLord.Core.usedSymmetryNotes(state, allForSymmetry);
 
+    var geometryResults = (state.geometryResults || []).filter(function (result) {
+      return result.report !== false && geometryHasValues(result);
+    });
+
     return {
       dataName: state.dataName || "untitled",
       crystalRows: makeCrystalRows(state),
       bonds: mergedBonds,
       angles: angles,
       addedDistances: separateAdded,
+      geometryResults: geometryResults,
       symmetryNotes: symmetryNotes
     };
   }
@@ -735,6 +845,50 @@
     );
   }
 
+  function htmlGeometryTable(state, results) {
+    if (!results || !results.length) {
+      return "";
+    }
+  
+    var volumeHeader = titleWithUnit(state, "V", "Å³");
+  
+    return (
+      "<h2>Geometry parameters</h2>" +
+      "<table class=\"geometry-report-table\">" +
+        "<thead>" +
+          "<tr>" +
+            "<th>Central atom</th>" +
+            "<th>CN</th>" +
+            "<th>Ligand atoms</th>" +
+            "<th>CShM comparison</th>" +
+            "<th>τ<sub>4</sub></th>" +
+            "<th>τ<sub>4</sub>′</th>" +
+            "<th>τ<sub>5</sub></th>" +
+            "<th>" + escapeHtml(volumeHeader) + "</th>" +
+          "</tr>" +
+        "</thead>" +
+        "<tbody>" +
+          results.map(function (result) {
+            var d = result.descriptors || {};
+  
+            return (
+              "<tr>" +
+                "<td>" + escapeHtml(result.centerLabel) + "</td>" +
+                "<td class=\"number\">" + escapeHtml(String(result.cn)) + "</td>" +
+                "<td>" + escapeHtml(geometryLigandsText(result)) + "</td>" +
+                "<td>" + geometryCshmHtml(result) + "</td>" +
+                "<td class=\"number\">" + geometryValue(d["τ₄"]) + "</td>" +
+                "<td class=\"number\">" + geometryValue(d["τ₄′"]) + "</td>" +
+                "<td class=\"number\">" + geometryValue(d["τ₅"]) + "</td>" +
+                "<td class=\"number\">" + geometryValue(d["V /Å³"]) + "</td>" +
+              "</tr>"
+            );
+          }).join("") +
+        "</tbody>" +
+      "</table>"
+    );
+  }
+  
   function htmlSymmetrySentence(notes) {
     if (!notes.length) {
       return "";
@@ -923,7 +1077,9 @@
       );
     }
 
-    if (!model.bonds.length && !model.addedDistances.length && !model.angles.length) {
+    html += htmlGeometryTable(state, model.geometryResults);
+
+    if (!model.bonds.length && !model.addedDistances.length && !model.angles.length && !model.geometryResults.length) {
       html += "<p class=\"hint\">No values selected for the current element/atom selection.</p>";
     }
 
@@ -975,6 +1131,38 @@
     return out;
   }
 
+  function mdGeometryTable(tableNumber, state, results, dataName) {
+    var out = "";
+  
+    if (!results || !results.length) {
+      return "";
+    }
+  
+    var volumeHeader = titleWithUnit(state, "V", "Å³");
+  
+    out += "## Table " + tableNumber + ": Geometry parameters for **" + dataName + "**.\n\n";
+    out += "| Central atom | CN | Ligand atoms | CShM comparison | τ₄ | τ₄′ | τ₅ | " + volumeHeader + " |\n";
+    out += "|---|---:|---|---|---:|---:|---:|---:|\n";
+  
+    results.forEach(function (result) {
+      var d = result.descriptors || {};
+  
+      out +=
+        "| " + markdownCell(result.centerLabel) +
+        " | " + result.cn +
+        " | " + markdownCell(geometryLigandsText(result)) +
+        " | " + markdownCell(geometryCshmMarkdown(result)) +
+        " | " + geometryValue(d["τ₄"]) +
+        " | " + geometryValue(d["τ₄′"]) +
+        " | " + geometryValue(d["τ₅"]) +
+        " | " + geometryValue(d["V /Å³"]) +
+        " |\n";
+    });
+  
+    out += "\n";
+    return out;
+  }
+
   function makeMarkdown(state) {
     var model = getReportModel(state);
     var tableNumber = 1;
@@ -1020,8 +1208,17 @@
         model.dataName
       );
     }
+    
+    if (model.geometryResults.length) {
+      out += mdGeometryTable(
+        tableNumber++,
+        state,
+        model.geometryResults,
+        model.dataName
+      );
+    }
 
-    if (!model.bonds.length && !model.addedDistances.length && !model.angles.length) {
+    if (!model.bonds.length && !model.addedDistances.length && !model.angles.length && !model.geometryResults.length) {
       out += "No values selected for the current element/atom selection.\n\n";
     }
 
@@ -1104,6 +1301,71 @@
   
     items.forEach(function (item) {
       out += padRight(plainInline(item.atomsHtml), atomWidth) + "    " + item.value + "\n";
+    });
+  
+    out += "\n";
+    return out;
+  }
+
+  function plainGeometryTable(tableNumber, state, results, dataName) {
+    if (!results || !results.length) {
+      return "";
+    }
+  
+    var out = "";
+    var volumeHeader = titleWithUnit(state, "V", "Å³");
+    var caption = "Table " + tableNumber + ": Geometry parameters for " + dataName + ".";
+  
+    var headers = [
+      "Central atom",
+      "CN",
+      "Ligand atoms",
+      "CShM comparison",
+      "τ₄",
+      "τ₄′",
+      "τ₅",
+      volumeHeader
+    ];
+  
+    var rows = results.map(function (result) {
+      var d = result.descriptors || {};
+  
+      return [
+        result.centerLabel,
+        String(result.cn),
+        geometryLigandsText(result),
+        geometryCshmText(result),
+        geometryValue(d["τ₄"]),
+        geometryValue(d["τ₄′"]),
+        geometryValue(d["τ₅"]),
+        geometryValue(d["V /Å³"])
+      ];
+    });
+  
+    var widths = headers.map(function (h) {
+      return h.length;
+    });
+  
+    rows.forEach(function (row) {
+      row.forEach(function (cell, i) {
+        widths[i] = Math.max(widths[i], String(cell || "").length);
+      });
+    });
+  
+    function rowLine(cells) {
+      return cells.map(function (cell, i) {
+        return padRight(cell, widths[i]);
+      }).join("    ") + "\n";
+    }
+  
+    out += plainLine(caption);
+    out += rowLine(headers);
+    out += rowLine(widths.map(function (w) {
+      return "-".repeat(w);
+    }));
+  
+    rows.forEach(function (row) {
+      out += rowLine(row);
     });
   
     out += "\n";
@@ -1221,8 +1483,17 @@
         model.dataName
       );
     }
+    
+    if (model.geometryResults.length) {
+      out += plainGeometryTable(
+        tableNumber++,
+        state,
+        model.geometryResults,
+        model.dataName
+      );
+    }
 
-    if (!model.bonds.length && !model.addedDistances.length && !model.angles.length) {
+    if (!model.bonds.length && !model.addedDistances.length && !model.angles.length && !model.geometryResults.length) {
       out += "No values selected for the current element/atom selection.\n\n";
     }
 
@@ -1518,6 +1789,87 @@
     return out;
   }
 
+  function rtfTau(label) {
+    if (label === "tau4") {
+      return rtfEscape("τ") + "{\\sub 4}";
+    }
+  
+    if (label === "tau4prime") {
+      return rtfEscape("τ") + "{\\sub 4}" + rtfEscape("′");
+    }
+  
+    if (label === "tau5") {
+      return rtfEscape("τ") + "{\\sub 5}";
+    }
+  
+    return rtfEscape(label);
+  }
+  
+  function rtfGeometryRow(cells, bold) {
+    var widths = [1200, 1700, 3900, 6700, 7400, 8100, 8800, 9800];
+  
+    var out = "{\\trowd\\trgaph108\\trql";
+  
+    widths.forEach(function (w) {
+      out += "\\cellx" + w;
+    });
+  
+    cells.forEach(function (cell) {
+      out += "\\pard\\intbl \\f0\\fs20 " +
+        (bold ? "{\\b " + cell + "}" : cell) +
+        "\\cell";
+    });
+  
+    out += "\\row}\n";
+  
+    return out;
+  }
+  
+  function rtfGeometryTable(tableNumber, state, results) {
+    if (!results || !results.length) {
+      return "";
+    }
+  
+    var out = "";
+    var volumeHeader = titleWithUnit(state, "V", "Å³");
+  
+    out += rtfParagraph(
+      "{\\b Table " + tableNumber + ": }" +
+      rtfEscape("Geometry parameters for ") +
+      "{\\b " + rtfEscape((state.dataName || "untitled")) + "}."
+    );
+  
+    out += rtfGeometryRow([
+      rtfEscape("Central atom"),
+      rtfEscape("CN"),
+      rtfEscape("Ligand atoms"),
+      rtfEscape("CShM comparison"),
+      rtfTau("tau4"),
+      rtfTau("tau4prime"),
+      rtfTau("tau5"),
+      rtfEscape(volumeHeader)
+    ], true);
+  
+    results.forEach(function (result) {
+      var d = result.descriptors || {};
+  
+      out += rtfGeometryRow([
+        rtfEscape(result.centerLabel),
+        rtfEscape(String(result.cn)),
+        rtfEscape(geometryLigandsText(result)),
+        geometryCshmRtf(result),
+        rtfEscape(geometryValue(d["τ₄"])),
+        rtfEscape(geometryValue(d["τ₄′"])),
+        rtfEscape(geometryValue(d["τ₅"])),
+        rtfEscape(geometryValue(d["V /Å³"]))
+      ], false);
+    });
+  
+    out += rtfBlankLine();
+  
+    return out;
+  }
+
   function rtfSymmetryNotes(notes) {
     if (!notes.length) {
       return "";
@@ -1643,6 +1995,14 @@
         model.dataName
       );
     }
+    
+    if (model.geometryResults.length) {
+      body += rtfGeometryTable(
+        tableNumber++,
+        state,
+        model.geometryResults
+      );
+    }    
 
     body += rtfSymmetryNotes(model.symmetryNotes);
 

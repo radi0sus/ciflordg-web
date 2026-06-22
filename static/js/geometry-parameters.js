@@ -899,7 +899,9 @@
     var result = {
       id: "g" + Date.now() + "_" + Math.random().toString(16).slice(2),
       signature: signature,
-
+    
+      report: true,
+    
       centerLabel: centerAtom.label,
       centerElement: normalizeElement(centerAtom.element),
 
@@ -933,6 +935,7 @@
 
     if (existingIndex !== -1) {
       result.id = state.geometryResults[existingIndex].id;
+      result.report = state.geometryResults[existingIndex].report !== false;
       state.geometryResults[existingIndex] = result;
     } else {
       state.geometryResults.push(result);
@@ -1101,6 +1104,7 @@
   
       return (
         "<tr>" +
+          "<td><input type=\"checkbox\" data-geom-report=\"" + escapeHtml(result.id) + "\"" + (result.report !== false ? " checked" : "") + "></td>" +
           "<td>" + escapeHtml(result.centerLabel) + "</td>" +
           "<td class=\"number\">" + result.cn + "</td>" +
           "<td>" + escapeHtml(ligandListText(result.ligands)) + "</td>" +
@@ -1119,6 +1123,7 @@
       "<table class=\"data-table geometry-results-table\">" +
         "<thead>" +
           "<tr>" +
+            "<th>Report</th>" +
             "<th>Central atom</th>" +
             "<th>CN</th>" +
             "<th>Ligand atoms</th>" +
@@ -1204,19 +1209,37 @@
       }
 
       if (resultsBox) {
+        resultsBox.addEventListener("change", function (event) {
+          var input = event.target;
+      
+          if (!input.matches("input[type='checkbox'][data-geom-report]")) {
+            return;
+          }
+      
+          var id = input.getAttribute("data-geom-report");
+      
+          (state.geometryResults || []).forEach(function (result) {
+            if (result.id === id) {
+              result.report = input.checked;
+            }
+          });
+      
+          renderAll();
+        });
+      
         resultsBox.addEventListener("click", function (event) {
           var button = event.target;
-
+      
           if (!button.matches("button[data-geom-remove]")) {
             return;
           }
-
+      
           var id = button.getAttribute("data-geom-remove");
-
+      
           state.geometryResults = (state.geometryResults || []).filter(function (result) {
             return result.id !== id;
           });
-
+      
           renderAll();
         });
       }

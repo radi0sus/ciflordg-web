@@ -662,19 +662,62 @@ sup {
 }
 
 /* Preview web view:
-   only value tables with table headers = 60:40 */
-.report-preview table:has(thead) {
+   only ordinary value tables with table headers = 60:40.
+   Geometry report table is excluded because it has many columns. */
+.report-preview table:has(thead):not(.geometry-report-table) {
   table-layout: fixed;
 }
 
-.report-preview table:has(thead) th:first-child,
-.report-preview table:has(thead) td:first-child {
+.report-preview table:has(thead):not(.geometry-report-table) th:first-child,
+.report-preview table:has(thead):not(.geometry-report-table) td:first-child {
   width: 60%;
 }
 
-.report-preview table:has(thead) th:nth-child(2),
-.report-preview table:has(thead) td:nth-child(2) {
+.report-preview table:has(thead):not(.geometry-report-table) th:nth-child(2),
+.report-preview table:has(thead):not(.geometry-report-table) td:nth-child(2) {
   width: 40%;
+}
+
+/* Geometry table inside the report preview */
+.report-preview table.geometry-report-table {
+  table-layout: fixed;
+  font-size: 0.82rem;
+}
+
+.report-preview table.geometry-report-table th:nth-child(1),
+.report-preview table.geometry-report-table td:nth-child(1) {
+  width: 10%;
+}
+
+.report-preview table.geometry-report-table th:nth-child(2),
+.report-preview table.geometry-report-table td:nth-child(2) {
+  width: 6%;
+}
+
+.report-preview table.geometry-report-table th:nth-child(3),
+.report-preview table.geometry-report-table td:nth-child(3) {
+  width: 22%;
+}
+
+.report-preview table.geometry-report-table th:nth-child(4),
+.report-preview table.geometry-report-table td:nth-child(4) {
+  width: 30%;
+}
+
+.report-preview table.geometry-report-table th:nth-child(5),
+.report-preview table.geometry-report-table td:nth-child(5),
+.report-preview table.geometry-report-table th:nth-child(6),
+.report-preview table.geometry-report-table td:nth-child(6),
+.report-preview table.geometry-report-table th:nth-child(7),
+.report-preview table.geometry-report-table td:nth-child(7),
+.report-preview table.geometry-report-table th:nth-child(8),
+.report-preview table.geometry-report-table td:nth-child(8) {
+  width: 8%;
+}
+
+.report-preview table.geometry-report-table td:nth-child(3),
+.report-preview table.geometry-report-table td:nth-child(4) {
+  overflow-wrap: anywhere;
 }
 
 /* Average page:
@@ -733,8 +776,8 @@ sup {
   grid-template-columns: repeat(2, minmax(130px, 1fr));
 }
 
-.geometry-ligand-table,
-.geometry-results-table {
+/* Ligand table in Geometry tab */
+.geometry-ligand-table {
   table-layout: fixed;
 }
 
@@ -759,47 +802,60 @@ sup {
   width: auto;
 }
 
+/* Results table in Geometry tab */
 .geometry-results-table {
   table-layout: fixed;
 }
 
 .geometry-results-table th:nth-child(1),
 .geometry-results-table td:nth-child(1) {
-  width: 10%;
+  width: 7%;
+  text-align: center;
 }
 
 .geometry-results-table th:nth-child(2),
 .geometry-results-table td:nth-child(2) {
-  width: 6%;
+  width: 10%;
 }
 
 .geometry-results-table th:nth-child(3),
 .geometry-results-table td:nth-child(3) {
-  width: 24%;
+  width: 6%;
 }
 
 .geometry-results-table th:nth-child(4),
 .geometry-results-table td:nth-child(4) {
-  width: 28%;
+  width: 22%;
 }
 
 .geometry-results-table th:nth-child(5),
-.geometry-results-table td:nth-child(5),
+.geometry-results-table td:nth-child(5) {
+  width: 27%;
+}
+
 .geometry-results-table th:nth-child(6),
 .geometry-results-table td:nth-child(6),
 .geometry-results-table th:nth-child(7),
 .geometry-results-table td:nth-child(7),
 .geometry-results-table th:nth-child(8),
-.geometry-results-table td:nth-child(8) {
-  width: 8%;
-}
-
+.geometry-results-table td:nth-child(8),
 .geometry-results-table th:nth-child(9),
 .geometry-results-table td:nth-child(9) {
-  width: 8%;
+  width: 7%;
 }
 
-.geometry-results-table td:nth-child(3),
-.geometry-results-table td:nth-child(4) {
+.geometry-results-table th:nth-child(10),
+.geometry-results-table td:nth-child(10) {
+  width: 7%;
+}
+
+.geometry-results-table td:nth-child(4),
+.geometry-results-table td:nth-child(5) {
   overflow-wrap: anywhere;
+}
+
+.geometry-results-table .number,
+.geometry-ligand-table .number,
+.report-preview table.geometry-report-table .number {
+  white-space: nowrap;
 }
