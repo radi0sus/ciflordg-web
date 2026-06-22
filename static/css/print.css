@@ -1,0 +1,39 @@
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .app-header,
+  .sidebar,
+  .tabs,
+  .preview-actions,
+  .table-toolbar {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block;
+    padding: 0;
+  }
+
+  .panel {
+    border: none;
+    box-shadow: none;
+  }
+
+  .tab-page {
+    display: none !important;
+  }
+
+  #tab-selection {
+    display: block !important;
+  }
+
+  .two-column {
+    display: block;
+  }
+
+  .preview-panel {
+    position: static;
+  }
+}

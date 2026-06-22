@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CIFLord Web</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="static/css/app.css">
+  <link rel="stylesheet" href="static/css/print.css">
+</head>
+
+<body>
+  <header class="app-header">
+    <div class="app-title">
+      <h1>CIFLord Web</h1>
+      <p class="subtitle">CIF Preview · Average · Interatomic Distances</p>
+    </div>
+  
+    <div class="top-toolbar" aria-label="Main actions">
+      <div class="toolbar-group">
+        <span class="toolbar-label">Load</span>
+        <button type="button" id="btn-load-proxy">CIF</button>
+      </div>
+  
+      <div class="toolbar-group">
+        <span class="toolbar-label">Copy</span>
+        <button type="button" id="btn-copy-formatted" disabled>Formatted</button>
+        <button type="button" id="btn-copy-md" disabled>Markdown</button>
+        <button type="button" id="btn-copy-text" disabled>Plain Text</button>
+      </div>
+  
+      <div class="toolbar-group">
+        <span class="toolbar-label">Save</span>
+        <button type="button" id="btn-download-rtf" disabled>RTF</button>
+        <button type="button" id="btn-download-md" disabled>Markdown</button>
+        <button type="button" id="btn-download-text" disabled>Plain Text</button>
+        <button type="button" id="btn-download-csv" disabled>CSV</button>
+      </div>
+    </div>
+  </header>
+
+  <input id="file-input" class="hidden" type="file" accept=".cif,.txt">
+
+  <main class="app-shell">
+    <aside class="sidebar">
+      <section class="panel">
+        <h2>File</h2>
+
+        <div id="dropzone" class="dropzone">
+          <strong>Drop CIF file here</strong>
+          <span>or select a file</span>
+          <button type="button" id="btn-file-select">Choose file</button>
+        </div>
+
+        <dl class="meta-list">
+          <dt>File</dt>
+          <dd id="meta-file">—</dd>
+
+          <dt>Data block</dt>
+          <dd id="meta-data-name">—</dd>
+
+          <dt>Status</dt>
+          <dd id="meta-status">No CIF loaded</dd>
+
+          <dt>Atoms</dt>
+          <dd id="meta-atoms">—</dd>
+
+          <dt>SymOps</dt>
+          <dd id="meta-symops">—</dd>
+        </dl>
+      </section>
+
+      <section class="panel">
+        <h2>Report options</h2>
+
+        <label>
+          <input id="opt-show-bonds" type="checkbox" checked>
+          Bond lengths
+        </label>
+
+        <label>
+          <input id="opt-show-angles" type="checkbox" checked>
+          Bond angles
+        </label>
+        
+        <label>
+          <input id="opt-middle-atom-only" type="checkbox">
+          Middle atom only for angles
+        </label>
+        
+        <label>
+          <input id="opt-show-caption" type="checkbox" checked>
+          Figure caption
+        </label>
+
+        <label>
+          <input id="opt-si-units" type="checkbox" checked>
+          SI unit style
+        </label>
+
+        <label>
+          Added distances
+          <select id="opt-added-display">
+            <option value="separate" selected>separate section</option>
+            <option value="merge">merge into bond table</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="panel warning-panel">
+        <h2>Warnings</h2>
+        <ul id="warnings-list">
+          <li>No CIF loaded.</li>
+        </ul>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <nav class="tabs" aria-label="Main sections">
+        <button class="tab active" type="button" data-tab="selection">Selection & Preview</button>
+        <button class="tab" type="button" data-tab="average">Average</button>
+        <button class="tab" type="button" data-tab="interatomic">Interatomic Distances</button>
+      </nav>
+
+      <!-- TAB 1: Selection & Preview -->
+      <section class="tab-page active" id="tab-selection">
+        <div class="two-column">
+          <section class="panel">
+            <h2>Selection</h2>
+
+            <div class="filter-grid">
+              <label>
+                Element
+                <select id="select-element"></select>
+              </label>
+
+              <label>
+                Atom
+                <select id="select-atom"></select>
+              </label>
+
+              <label class="checkbox-row">
+                <input id="opt-independent" type="checkbox">
+                independent only
+              </label>
+            </div>
+
+            <div id="selection-tables"></div>
+          </section>
+
+          <section class="panel preview-panel">
+            <div class="preview-header">
+              <h2>Preview</h2>
+            </div>
+            <article id="report-preview" class="report-preview"></article>
+          </section>
+        </div>
+      </section>
+
+      <!-- TAB 2: Average -->
+      <section class="tab-page" id="tab-average">
+        <section class="panel">
+          <h2>Average selection</h2>
+
+          <div class="filter-grid">
+            <label>
+              Element
+              <select id="avg-select-element"></select>
+            </label>
+
+            <label>
+              Atom
+              <select id="avg-select-atom"></select>
+            </label>
+
+          </div>
+
+          <p class="hint">
+            The Average section has its own element/atom selection. Standard deviations describe the scatter of grouped values.
+          </p>
+        </section>
+
+        <section class="panel">
+          <h2 id="average-bonds-title">Average bond lengths / distances</h2>
+          <div id="average-bonds"></div>
+        </section>
+
+        <section class="panel">
+          <h2 id="average-angles-title">Average bond angles</h2>
+          <div id="average-angles"></div>
+        </section>
+      </section>
+
+      <!-- TAB 3: Interatomic Distances -->
+      <section class="tab-page" id="tab-interatomic">
+        <div class="two-column">
+          <section class="panel">
+            <h2>Single distance</h2>
+
+            <div class="form-grid">
+            <div class="pair-row full">
+                <label>
+                Element A
+                <select id="single-element-a"></select>
+                </label>
+            
+                <label>
+                Atom A
+                <select id="single-atom-a"></select>
+                </label>
+            </div>
+            
+            <div class="pair-row full">
+                <label>
+                Element B
+                <select id="single-element-b"></select>
+                </label>
+            
+                <label>
+                Atom B
+                <select id="single-atom-b"></select>
+                </label>
+            </div>
+            
+            <label class="full">
+                Symmetry operation
+                <select id="single-symop"></select>
+            </label>
+            
+            <label>
+                Code X
+                <select id="single-code-x">
+                <option>3</option>
+                <option>4</option>
+                <option selected>5</option>
+                <option>6</option>
+                <option>7</option>
+                </select>
+            </label>
+            
+            <label>
+                Code Y
+                <select id="single-code-y">
+                <option>3</option>
+                <option>4</option>
+                <option selected>5</option>
+                <option>6</option>
+                <option>7</option>
+                </select>
+            </label>
+            
+            <label>
+                Code Z
+                <select id="single-code-z">
+                <option>3</option>
+                <option>4</option>
+                <option selected>5</option>
+                <option>6</option>
+                <option>7</option>
+                </select>
+            </label>
+            </div>
+
+            <div class="result-box">
+              <span>Resulting operation</span>
+              <strong id="single-result-operation">—</strong>
+            </div>
+
+            <div class="result-box primary">
+              <span>Distance with estimated e.s.d.</span>
+              <strong id="single-result-distance">not available</strong>
+            </div>
+
+            <div class="table-toolbar">
+              <button type="button" id="btn-add-single-distance">Add single distance</button>
+            </div>
+
+            <p class="hint">
+              The e.s.d. for calculated distances is estimated from coordinate and unit-cell e.s.d.s.
+              Correlations are not considered.
+            </p>
+          </section>
+
+          <section class="panel">
+            <h2>Search distance range</h2>
+
+            <div class="search-grid">
+              <label>
+                Element A
+                <select id="search-element-a"></select>
+              </label>
+
+              <label>
+                Atom A
+                <select id="search-atom-a"></select>
+              </label>
+
+              <label>
+                Element B
+                <select id="search-element-b"></select>
+              </label>
+
+              <label>
+                Atom B
+                <select id="search-atom-b"></select>
+              </label>
+
+              <label>
+                Min distance / A
+                <input id="search-min" type="number" value="1" step="0.1">
+              </label>
+
+              <label>
+                Max distance / A
+                <input id="search-max" type="number" value="4" step="0.1">
+              </label>
+            </div>
+
+            <div class="table-toolbar">
+              <button type="button" id="btn-search-distances">Search and add</button>
+            </div>
+
+            <progress id="search-progress" value="0" max="100"></progress>
+
+            <p class="hint">
+              Search results are added directly to the table below. Use the Add checkbox there to include or exclude them.
+            </p>
+          </section>
+        </div>
+
+        <section class="panel">
+          <h2>Added interatomic distances</h2>
+
+          <p class="hint">
+            Checked entries are included in preview, export, and average calculations.
+          </p>
+
+          <div class="table-toolbar">
+            <button type="button" id="btn-clear-added-distances">Clear added distances</button>
+          </div>
+
+          <div id="added-distances-table"></div>
+        </section>
+      </section>
+
+    </section>
+    
+     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+     
+  </main>
+
+  <script src="static/js/data.js"></script>
+  <script src="static/js/parser.js"></script>
+  <script src="static/js/core.js"></script>
+  <script src="static/js/reports.js"></script>
+  <script src="static/js/ui.js"></script>
+  <script src="static/js/app.js"></script>
+</body>
+</html>
