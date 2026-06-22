@@ -412,7 +412,7 @@
     }
 
     return useSiUnits(state)
-      ? title + " / " + unit
+      ? title + " /" + unit
       : title + " [" + unit + "]";
   }
 
@@ -816,9 +816,9 @@
     if (parts.length) {
       body =
         "Selected distances " +
-        (useSiUnits(state) ? "/ Å" : "[Å]") +
+        (useSiUnits(state) ? "/Å" : "[Å]") +
         " and angles " +
-        (useSiUnits(state) ? "/ °" : "[°]") +
+        (useSiUnits(state) ? "/°" : "[°]") +
         " for <strong>" +
         escapeHtml(model.dataName) +
         "</strong>: " +
@@ -865,9 +865,9 @@
     if (parts.length) {
       body =
         "Selected distances " +
-        (useSiUnits(state) ? "/ Å" : "[Å]") +
+        (useSiUnits(state) ? "/Å" : "[Å]") +
         " and angles " +
-        (useSiUnits(state) ? "/ °" : "[°]") +
+        (useSiUnits(state) ? "/°" : "[°]") +
         " for **" +
         model.dataName +
         "**: " +
@@ -937,76 +937,87 @@
     return html;
   }
 
-  function mdKeyValueTable(title, rows) {
+  function mdKeyValueTable(tableNumber, title, rows, dataName) {
     var out = "";
-
+  
     if (!rows.length) {
       return "";
     }
-
-    out += "## " + title + "\n\n";
+  
+    out += "## Table " + tableNumber + ": " + title + " for **" + dataName + "**.\n\n";
     out += "| Parameter | Value |\n";
     out += "|---|---|\n";
-
+  
     rows.forEach(function (row) {
       out += "| " + markdownCell(row.labelHtml) + " | " + markdownCell(row.valueHtml) + " |\n";
     });
-
+  
     out += "\n";
     return out;
   }
 
-  function mdValueTable(title, items, valueHeader) {
+  function mdValueTable(tableNumber, title, items, valueHeader, dataName) {
     var out = "";
-
+  
     if (!items.length) {
       return "";
     }
-
-    out += "## " + title + "\n\n";
+  
+    out += "## Table " + tableNumber + ": " + title + " for **" + dataName + "**.\n\n";
     out += "| Atoms | " + valueHeader + " |\n";
     out += "|---|---:|\n";
-
+  
     items.forEach(function (item) {
       out += "| " + markdownCell(item.atomsHtml) + " | " + markdownCell(item.value) + " |\n";
     });
-
+  
     out += "\n";
     return out;
   }
 
   function makeMarkdown(state) {
     var model = getReportModel(state);
+    var tableNumber = 1;
     var out = "# " + model.dataName + "\n\n";
-
-    out += mdKeyValueTable(
-      "Crystal data and refinement details",
-      model.crystalRows
-    );
+  
+    if (model.crystalRows.length) {
+      out += mdKeyValueTable(
+        tableNumber++,
+        "Crystal data and refinement details",
+        model.crystalRows,
+        model.dataName
+      );
+    }
 
     if (model.bonds.length) {
       out += mdValueTable(
+        tableNumber++,
         state.reportOptions.addedDisplay === "merge"
           ? titleWithUnit(state, "Selected bond lengths and interatomic distances", "Å")
           : titleWithUnit(state, "Selected bond lengths", "Å"),
         model.bonds,
-        "Distance"
+        "Distance",
+        model.dataName
       );
     }
 
     if (model.addedDistances.length) {
       out += mdValueTable(
+        tableNumber++,
         titleWithUnit(state, "Additional interatomic distances", "Å"),
         model.addedDistances,
-        "Distance"
+        "Distance",
+        model.dataName
       );
     }
 
     if (model.angles.length) {
       out += mdValueTable(
+        tableNumber++,
         titleWithUnit(state, "Selected bond angles", "°"),
         model.angles,
-        "Angle"
+        "Angle",
+        model.dataName
       );
     }
 
@@ -1048,51 +1059,53 @@
       .replace(/\^'''/g, "'''");
   }
 
-  function plainKeyValueTable(title, rows) {
+  function plainKeyValueTable(tableNumber, title, rows, dataName) {
     if (!rows.length) {
       return "";
     }
-
+  
     var out = "";
     var width = 0;
-
+    var caption = "Table " + tableNumber + ": " + title + " for " + dataName + ".";
+  
     rows.forEach(function (row) {
       var label = row.labelText || plainInline(row.labelHtml);
       width = Math.max(width, label.length);
     });
-
-    out += plainLine(title);
-
+  
+    out += plainLine(caption);
+  
     rows.forEach(function (row) {
       var label = row.labelText || plainInline(row.labelHtml);
       var value = row.valueText || plainInline(row.valueHtml);
-
+  
       out += padRight(label, width) + "    " + value + "\n";
     });
-
+  
     out += "\n";
     return out;
   }
 
-  function plainValueTable(title, items, valueHeader) {
+  function plainValueTable(tableNumber, title, items, valueHeader, dataName) {
     if (!items.length) {
       return "";
     }
-
+  
     var out = "";
     var atomWidth = "Atoms".length;
-
+    var caption = "Table " + tableNumber + ": " + title + " for " + dataName + ".";
+  
     items.forEach(function (item) {
       atomWidth = Math.max(atomWidth, plainInline(item.atomsHtml).length);
     });
-
-    out += plainLine(title);
+  
+    out += plainLine(caption);
     out += padRight("Atoms", atomWidth) + "    " + valueHeader + "\n";
-
+  
     items.forEach(function (item) {
       out += padRight(plainInline(item.atomsHtml), atomWidth) + "    " + item.value + "\n";
     });
-
+  
     out += "\n";
     return out;
   }
@@ -1140,9 +1153,9 @@
     if (parts.length) {
       out +=
         "Figure x. Selected distances " +
-        (useSiUnits(state) ? "/ Å" : "[Å]") +
+        (useSiUnits(state) ? "/Å" : "[Å]") +
         " and angles " +
-        (useSiUnits(state) ? "/ °" : "[°]") +
+        (useSiUnits(state) ? "/°" : "[°]") +
         " for " +
         model.dataName +
         ": " +
@@ -1162,6 +1175,7 @@
 
   function makePlainText(state) {
     var model = getReportModel(state);
+    var tableNumber = 1;
     var out = "";
 
     out += model.dataName + "\n";
@@ -1169,34 +1183,42 @@
 
     if (model.crystalRows.length) {
       out += plainKeyValueTable(
+        tableNumber++,
         "Crystal data and refinement details",
-        model.crystalRows
+        model.crystalRows,
+        model.dataName
       );
     }
 
     if (model.bonds.length) {
       out += plainValueTable(
+        tableNumber++,
         state.reportOptions.addedDisplay === "merge"
           ? titleWithUnit(state, "Selected bond lengths and interatomic distances", "Å")
           : titleWithUnit(state, "Selected bond lengths", "Å"),
         model.bonds,
-        "Distance"
+        "Distance",
+        model.dataName
       );
     }
 
     if (model.addedDistances.length) {
       out += plainValueTable(
+        tableNumber++,
         titleWithUnit(state, "Additional interatomic distances", "Å"),
         model.addedDistances,
-        "Distance"
+        "Distance",
+        model.dataName
       );
     }
 
     if (model.angles.length) {
       out += plainValueTable(
+        tableNumber++,
         titleWithUnit(state, "Selected bond angles", "°"),
         model.angles,
-        "Angle"
+        "Angle",
+        model.dataName
       );
     }
 
@@ -1215,24 +1237,52 @@
 
   function makeCSV(state) {
     var model = getReportModel(state);
-    var rows = [["type", "atoms", "value", "source"]];
-
-    model.bonds.forEach(function (item) {
-      rows.push([item.kind, stripHtml(item.atomsHtml), item.value, item.source]);
-    });
-
-    model.addedDistances.forEach(function (item) {
-      rows.push([item.kind, stripHtml(item.atomsHtml), item.value, item.source]);
-    });
-
-    model.angles.forEach(function (item) {
-      rows.push([item.kind, stripHtml(item.atomsHtml), item.value, item.source]);
-    });
-
+    var rows = [];
+  
+    function asciiText(value) {
+      return String(value || "")
+        .replace(/–/g, "-")
+        .replace(/−/g, "-");
+    }
+  
+    function csvString(value) {
+      value = asciiText(value);
+  
+      return "\"" + value.replace(/"/g, "\"\"") + "\"";
+    }
+  
+    function csvNumber(value) {
+      if (typeof value === "number" && isFinite(value)) {
+        return String(value);
+      }
+  
+      return "";
+    }
+  
+    function addItem(item) {
+      rows.push([
+        csvString(item.kind),
+        csvString(stripHtml(item.atomsHtml)),
+        csvString(item.value),
+        csvString(item.source),
+        csvNumber(item.numericalValue)
+      ]);
+    }
+  
+    rows.push([
+      "type",
+      "atoms",
+      "cif-value",
+      "source",
+      "value"
+    ]);
+  
+    model.bonds.forEach(addItem);
+    model.addedDistances.forEach(addItem);
+    model.angles.forEach(addItem);
+  
     return rows.map(function (row) {
-      return row.map(function (cell) {
-        return "\"" + String(cell).replace(/"/g, "\"\"") + "\"";
-      }).join(",");
+      return row.join(",");
     }).join("\n");
   }
 

@@ -434,7 +434,7 @@ label input[type="number"] {
   font-weight: 600;
 }
 
-.report-preview table td:first-child {
+.report-preview table:not(:has(thead)) td:first-child {
   min-width: 12rem;
 }
 
@@ -638,4 +638,89 @@ sup {
   .stats-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* -------------------------------------------------
+   Web view table column layout
+   Exports / report generation unchanged
+   ------------------------------------------------- */
+
+/* Selection page:
+   Atoms / Distance and Atoms / Angle = 60:40 */
+#selection-tables .data-table {
+  table-layout: fixed;
+}
+
+#selection-tables .data-table th:first-child,
+#selection-tables .data-table td:first-child {
+  width: 60%;
+}
+
+#selection-tables .data-table th:nth-child(2),
+#selection-tables .data-table td:nth-child(2) {
+  width: 40%;
+}
+
+/* Preview web view:
+   only value tables with table headers = 60:40 */
+.report-preview table:has(thead) {
+  table-layout: fixed;
+}
+
+.report-preview table:has(thead) th:first-child,
+.report-preview table:has(thead) td:first-child {
+  width: 60%;
+}
+
+.report-preview table:has(thead) th:nth-child(2),
+.report-preview table:has(thead) td:nth-child(2) {
+  width: 40%;
+}
+
+/* Average page:
+   upper and lower tables use identical column widths */
+#average-bonds .data-table,
+#average-angles .data-table {
+  table-layout: fixed;
+}
+
+#average-bonds .data-table th:nth-child(1),
+#average-bonds .data-table td:nth-child(1),
+#average-angles .data-table th:nth-child(1),
+#average-angles .data-table td:nth-child(1) {
+  width: 34%;
+}
+
+#average-bonds .data-table th:nth-child(2),
+#average-bonds .data-table td:nth-child(2),
+#average-angles .data-table th:nth-child(2),
+#average-angles .data-table td:nth-child(2) {
+  width: 10%;
+}
+
+#average-bonds .data-table th:nth-child(3),
+#average-bonds .data-table td:nth-child(3),
+#average-angles .data-table th:nth-child(3),
+#average-angles .data-table td:nth-child(3) {
+  width: 16%;
+}
+
+#average-bonds .data-table th:nth-child(4),
+#average-bonds .data-table td:nth-child(4),
+#average-angles .data-table th:nth-child(4),
+#average-angles .data-table td:nth-child(4) {
+  width: 24%;
+}
+
+#average-bonds .data-table th:nth-child(5),
+#average-bonds .data-table td:nth-child(5),
+#average-angles .data-table th:nth-child(5),
+#average-angles .data-table td:nth-child(5) {
+  width: 16%;
+}
+
+/* Better wrapping for long atom strings and ranges */
+.data-table td,
+.report-preview td {
+  overflow-wrap: anywhere;
 }
