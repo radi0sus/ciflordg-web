@@ -1,6 +1,6 @@
 # CIFLord Web
 
-Serverless browser application for CIF preview, crystallographic report generation, average calculations, geometry-parameter analysis, and interatomic distance analysis.
+Serverless browser application for CIF preview, crystallographic report generation, average calculations, geometry-parameter analysis, interatomic distance analysis, and disorder-model summarisation.
 
 ## Start
 
@@ -30,8 +30,11 @@ This web version provides the useful analysis and reporting parts of the origina
 - Coordination descriptors such as τ₄, τ₄′, τ₅, and coordination polyhedron volume
 - Interatomic distance calculation with estimated e.s.d.
 - Interatomic distance range search
-- Optional inclusion of added interatomic distances in preview, export, and average calculations
+- Management of added interatomic distances
 - Optional inclusion of calculated geometry parameters in the generated report
+- Disorder Helper for summarising crystallographic disorder information
+- Editable moiety and comment fields for disorder groups
+- Optional inclusion of the disorder table in the generated report
 - Export as Markdown, plain text, CSV, and RTF
 - Copy as formatted preview, Markdown, or plain text
 
@@ -62,11 +65,14 @@ The current version contains a working browser-only implementation with:
 - Symmetry footnotes for generated atoms
 - Selection tab with filtered bond lengths, bond angles, and added distances
 - Preview panel for the generated report
+- Floating/sticky sidebar and tab navigation
 - Report options:
   - show/hide bond lengths
   - show/hide bond angles
-  - middle-atom-only angle filtering
+  - show/hide calculated geometry parameters
+  - show/hide disorder table
   - show/hide figure caption
+  - middle-atom-only angle filtering
   - SI-style unit labels
   - separate or merged display of added distances
 - Average tab with grouped statistics
@@ -78,12 +84,20 @@ The current version contains a working browser-only implementation with:
   - τ₄, τ₄′, τ₅, and coordination polyhedron volume
   - stored calculated geometry-parameter results
   - optional inclusion of geometry-parameter results in the generated report
-- Interatomic distances tab:
+- Interatomic Distances tab:
   - single distance calculation
   - symmetry operation and translation code selection
   - estimated e.s.d. calculation
   - distance range search
   - management of added distances
+- Disorder Helper tab:
+  - extraction of disorder groups from atom-site disorder fields
+  - extraction of restraints and constraints from embedded SHELXL RES data where available
+  - compact or verbose atom-list display
+  - optional exclusion of hydrogen atoms
+  - editable moiety field with suggestion list
+  - editable comment field with automatic comment suggestions
+  - optional inclusion of the disorder table in the generated report
 - Export/download:
   - RTF
   - Markdown
@@ -108,6 +122,7 @@ The parser currently supports the CIF features needed for the reporting workflow
 - common geometry bond loops
 - common geometry angle loops
 - common symmetry operation loops
+- embedded multiline values such as `_shelx_res_file`
 
 The parser is intentionally lightweight and is not a complete formal CIF validator.
 
@@ -133,6 +148,10 @@ The application uses, where available, data such as:
 - `_atom_site_fract_x`
 - `_atom_site_fract_y`
 - `_atom_site_fract_z`
+- `_atom_site_adp_type`
+- `_atom_site_occupancy`
+- `_atom_site_disorder_assembly`
+- `_atom_site_disorder_group`
 - `_geom_bond_atom_site_label_1`
 - `_geom_bond_atom_site_label_2`
 - `_geom_bond_distance`
@@ -147,6 +166,7 @@ The application uses, where available, data such as:
 - `_geom_angle_site_symmetry_3`
 - `_space_group_symop_operation_xyz`
 - `_symmetry_equiv_pos_as_xyz`
+- `_shelx_res_file`
 
 Some common alternative tag names are also supported.
 
@@ -170,7 +190,7 @@ The octahedricity parameter `O` is intentionally not included.
 
 Calculated geometry-parameter results are stored in the tab until they are removed or the CIF is reloaded.
 
-Each calculated result can be included in or excluded from the generated report. Included geometry-parameter results are added as a separate `Geometry parameters` table in the report preview and in Markdown, plain text, and RTF exports.
+Geometry-parameter results can be included in or excluded from the generated report using the global report option. Included geometry-parameter results are added as a separate `Geometry parameters` table in the report preview and in Markdown, plain text, and RTF exports.
 
 Limitations:
 
@@ -193,13 +213,81 @@ Limitations:
 - The calculation is intended as a practical estimate.
 - The result depends on the availability and quality of coordinate and unit-cell e.s.d.s in the CIF.
 
-Added distances can be included or excluded from:
+Added distances are managed in the Interatomic Distances tab.
+
+Added distances are included in:
 
 - preview
 - exports
 - average calculations
 
-They can either be shown in a separate section or merged into the bond-length table.
+To exclude an added distance, remove it from the added-distance table.
+
+Added distances can either be shown in a separate section or merged into the bond-length table.
+
+## Disorder Helper
+
+The Disorder Helper tab summarises disorder information from the CIF.
+
+It uses atom-site disorder fields where available:
+
+- `_atom_site_disorder_assembly`
+- `_atom_site_disorder_group`
+- `_atom_site_occupancy`
+- `_atom_site_label`
+- `_atom_site_adp_type`
+
+If an embedded SHELXL RES file is available through `_shelx_res_file`, the Disorder Helper also scans it for common restraints, constraints, and SAME instructions.
+
+Currently recognised restraint/constraint instructions include:
+
+- restraints:
+  - `SAME`
+  - `SADI`
+  - `RIGU`
+  - `SIMU`
+  - `DELU`
+  - `ISOR`
+  - `DFIX`
+- constraints:
+  - `EADP`
+
+The generated disorder table contains:
+
+- Assembly
+- Part
+- Occupancy
+- Atoms
+- Moiety
+- Restraints
+- Constraints
+- Comment
+
+The `Moiety` field is editable and supports free text with suggestions from a built-in moiety library. The library includes common solvents, ions, and organic fragments using Unicode subscripts and superscript charges, for example `PF₆⁻`, `BF₄⁻`, `CH₂Cl₂`, and `H₂O`.
+
+The `Comment` field is editable. Some comments are generated automatically where applicable, for example:
+
+- disorder about a symmetry operation
+- isotropic refinement
+- partially isotropic refinement
+- moiety-based comments from the suggestion library
+
+Options:
+
+- exclude hydrogen atoms
+- compact or verbose atom-list display
+- regenerate from CIF
+- clear manual edits
+
+The disorder table can be included in or excluded from the generated report using the global report option.
+
+Limitations:
+
+- Disorder detection depends on the disorder fields present in the CIF.
+- The SHELXL RES parser is pragmatic and searches common commands rather than fully parsing SHELXL syntax.
+- SAME association is assigned to the first following disordered atom line in the embedded RES file.
+- Complex or unusual disorder models may require manual editing of the generated table.
+- Manual edits are held in browser memory and are reset when a new CIF is loaded.
 
 ## Average calculations
 
@@ -235,6 +323,7 @@ It preserves basic formatting such as:
 - tables
 - symmetry notes
 - geometry-parameter tables
+- disorder tables
 
 ### Markdown
 
@@ -242,17 +331,21 @@ Markdown export is intended for readable text-based reports and further conversi
 
 Included geometry-parameter results are exported as a Markdown table.
 
+Included disorder rows are exported as a Markdown table.
+
 ### Plain text
 
 Plain text export provides a simple fixed-width readable report.
 
 Included geometry-parameter results are exported as an aligned plain-text table.
 
+Included disorder rows are exported as an aligned plain-text table.
+
 ### CSV
 
 CSV export is intended for reuse in spreadsheet or data-processing software.
 
-The CSV contains selected/exported numerical geometry data from bond lengths, angles, and added interatomic distances.
+The CSV contains selected/exported numerical geometry data from bond lengths, angles, and added interatomic distances, as well as exported disorder-table rows.
 
 The current CSV format uses:
 
@@ -261,11 +354,24 @@ The current CSV format uses:
 - `cif-value`
 - `source`
 - `value`
+- `assembly`
+- `part`
+- `occupancy`
+- `moiety`
+- `restraints`
+- `constraints`
+- `comment`
 
-where:
+For bond lengths, angles, and added interatomic distances:
 
 - `cif-value` is the original value including crystallographic e.s.d. notation, for example `1.844(10)`
 - `value` is the numerical value only, for example `1.844`
+
+For disorder rows:
+
+- `type` is `disorder`
+- `source` is `disorder-helper`
+- disorder-specific columns are filled where available
 
 Typographic dashes are converted to ASCII hyphens in the CSV output.
 
@@ -277,6 +383,8 @@ Formatted copy uses the browser selection and clipboard mechanism.
 
 This works well in many browsers, but exact formatting can depend on the target application.
 
+Microsoft Word and other word processors may not reproduce the browser preview exactly when using formatted copy, because browser CSS is only partially transferred through the clipboard.
+
 True RTF clipboard copy is not reliable in browsers, especially when running from `file://`.
 
 Therefore:
@@ -287,17 +395,19 @@ Therefore:
 - RTF download is supported
 - direct RTF clipboard copy is not provided
 
+For word-processor workflows, use the RTF download where possible.
+
 ## Known limitations
 
 - The CIF parser is pragmatic, not a full CIF validator.
 - Multiple data blocks are not handled as separate selectable structures.
-- Disorder handling is limited.
+- Disorder handling is pragmatic and may require manual review.
 - Occupancy handling is limited.
 - Hydrogen treatment depends on the data present in the CIF.
 - Geometry-parameter calculations depend on the CIF geometry bond table.
 - CShM calculations are available for coordination numbers 2–6.
 - Geometry-parameter results are not currently included in CSV export.
+- Manual Disorder Helper edits are not written back to CIF files.
 - No structure drawing or ORTEP plot is currently included.
 - No CIF editing or rewriting is provided.
 - No LaTeX or PDF export is provided directly.
-

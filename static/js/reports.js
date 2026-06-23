@@ -417,10 +417,17 @@
   }
 
   function getSortOptions(state) {
-    return state.sortOptions || {
+    var sortOptions = state.sortOptions || {
       bonds: "cif",
-      angles: "cif"
+      angles: "cif",
+      addedDistances: "cif"
     };
+  
+    if (!sortOptions.addedDistances) {
+      sortOptions.addedDistances = "cif";
+    }
+  
+    return sortOptions;
   }
 
   function sortLabel(item) {
@@ -740,6 +747,21 @@
       : "—";
   }
 
+  function disorderRowsForReport(state) {
+    if (!state.reportOptions || state.reportOptions.showDisorder === false) {
+      return [];
+    }
+  
+    return (state.disorderRows || []).filter(function (row) {
+      return row;
+    });
+  }
+  
+  function disorderCell(value) {
+    value = String(value || "").trim();
+    return value || "—";
+  }
+
   function getReportModel(state) {
     var reportFilter = state.selectionFilter || {
       element: "all",
@@ -764,9 +786,11 @@
     angles = sortItems(angles, sortOptions.angles);
 
     var added = filtered(
-      CIFLord.Core.getSelectedForReport(state, "addedDistances"),
+      state.addedDistances || [],
       reportFilter
     );
+
+    added = sortItems(added, sortOptions.addedDistances);
 
     var mergedBonds = bonds.slice();
     var separateAdded = [];
@@ -780,10 +804,14 @@
     var allForSymmetry = mergedBonds.concat(separateAdded).concat(angles);
     var symmetryNotes = CIFLord.Core.usedSymmetryNotes(state, allForSymmetry);
 
-    var geometryResults = (state.geometryResults || []).filter(function (result) {
-      return result.report !== false && geometryHasValues(result);
-    });
-
+    var geometryResults = state.reportOptions.showGeometry === false
+      ? []
+      : (state.geometryResults || []).filter(function (result) {
+          return geometryHasValues(result);
+        });
+    
+    var disorderRows = disorderRowsForReport(state);
+    
     return {
       dataName: state.dataName || "untitled",
       crystalRows: makeCrystalRows(state),
@@ -791,17 +819,22 @@
       angles: angles,
       addedDistances: separateAdded,
       geometryResults: geometryResults,
+      disorderRows: disorderRows,
       symmetryNotes: symmetryNotes
     };
   }
 
-  function htmlKeyValueTable(title, rows) {
+  function htmlKeyValueTable(tableNumber, title, rows, dataName) {
     if (!rows.length) {
       return "";
     }
-
+  
     return (
-      "<h2>" + escapeHtml(title) + "</h2>" +
+      "<h2>Table " + tableNumber + ": " +
+        escapeHtml(title) +
+        " for <strong>" +
+        escapeHtml(dataName) +
+        "</strong>.</h2>" +
       "<table>" +
         "<tbody>" +
           rows.map(function (row) {
@@ -817,13 +850,17 @@
     );
   }
 
-  function htmlValueTable(title, items, valueHeader) {
+  function htmlValueTable(tableNumber, title, items, valueHeader, dataName) {
     if (!items.length) {
       return "";
     }
-
+  
     return (
-      "<h2>" + escapeHtml(title) + "</h2>" +
+      "<h2>Table " + tableNumber + ": " +
+        escapeHtml(title) +
+        " for <strong>" +
+        escapeHtml(dataName) +
+        "</strong>.</h2>" +
       "<table>" +
         "<thead>" +
           "<tr>" +
@@ -845,7 +882,7 @@
     );
   }
 
-  function htmlGeometryTable(state, results) {
+  function htmlGeometryTable(tableNumber, state, results, dataName) {
     if (!results || !results.length) {
       return "";
     }
@@ -853,7 +890,9 @@
     var volumeHeader = titleWithUnit(state, "V", "Å³");
   
     return (
-      "<h2>Geometry parameters</h2>" +
+      "<h2>Table " + tableNumber + ": Geometry parameters for <strong>" +
+        escapeHtml(dataName) +
+        "</strong>.</h2>" +
       "<table class=\"geometry-report-table\">" +
         "<thead>" +
           "<tr>" +
@@ -888,6 +927,48 @@
       "</table>"
     );
   }
+  
+  function htmlDisorderTable(tableNumber, rows, dataName) {
+    if (!rows || !rows.length) {
+      return "";
+    }
+  
+    return (
+      "<h2>Table " + tableNumber + ": Disorder model for <strong>" +
+        escapeHtml(dataName) +
+        "</strong>.</h2>" +
+      "<table class=\"disorder-report-table\">" +
+        "<thead>" +
+          "<tr>" +
+            "<th>Assembly</th>" +
+            "<th>Part</th>" +
+            "<th>Occupancy</th>" +
+            "<th>Atoms</th>" +
+            "<th>Moiety</th>" +
+            "<th>Restraints</th>" +
+            "<th>Constraints</th>" +
+            "<th>Comment</th>" +
+          "</tr>" +
+        "</thead>" +
+        "<tbody>" +
+          rows.map(function (row) {
+            return (
+              "<tr>" +
+                "<td>" + escapeHtml(disorderCell(row.assembly)) + "</td>" +
+                "<td class=\"number\">" + escapeHtml(disorderCell(row.part)) + "</td>" +
+                "<td class=\"number\">" + escapeHtml(disorderCell(row.occupancy)) + "</td>" +
+                "<td>" + escapeHtml(disorderCell(row.atomsText)) + "</td>" +
+                "<td>" + escapeHtml(disorderCell(row.moiety)) + "</td>" +
+                "<td>" + escapeHtml(disorderCell(row.restraints)) + "</td>" +
+                "<td>" + escapeHtml(disorderCell(row.constraints)) + "</td>" +
+                "<td>" + escapeHtml(disorderCell(row.comment)) + "</td>" +
+              "</tr>"
+            );
+          }).join("") +
+        "</tbody>" +
+      "</table>"
+    );
+  }  
   
   function htmlSymmetrySentence(notes) {
     if (!notes.length) {
@@ -1042,54 +1123,86 @@
 
   function renderHTMLPreview(state) {
     var model = getReportModel(state);
+    var tableNumber = 1;
     var html = "";
-
+  
     html += "<h1>" + escapeHtml(model.dataName) + "</h1>";
-
-    html += htmlKeyValueTable(
-      "Crystal data and refinement details",
-      model.crystalRows
-    );
-
+  
+    if (model.crystalRows.length) {
+      html += htmlKeyValueTable(
+        tableNumber++,
+        "Crystal data and refinement details",
+        model.crystalRows,
+        model.dataName
+      );
+    }
+  
     if (model.bonds.length) {
       html += htmlValueTable(
+        tableNumber++,
         state.reportOptions.addedDisplay === "merge"
           ? titleWithUnit(state, "Selected bond lengths and interatomic distances", "Å")
           : titleWithUnit(state, "Selected bond lengths", "Å"),
         model.bonds,
-        "Distance"
+        "Distance",
+        model.dataName
       );
     }
-
+  
     if (model.addedDistances.length) {
       html += htmlValueTable(
+        tableNumber++,
         titleWithUnit(state, "Additional interatomic distances", "Å"),
         model.addedDistances,
-        "Distance"
+        "Distance",
+        model.dataName
       );
     }
-
+  
     if (model.angles.length) {
       html += htmlValueTable(
+        tableNumber++,
         titleWithUnit(state, "Selected bond angles", "°"),
         model.angles,
-        "Angle"
+        "Angle",
+        model.dataName
       );
     }
-
-    html += htmlGeometryTable(state, model.geometryResults);
-
-    if (!model.bonds.length && !model.addedDistances.length && !model.angles.length && !model.geometryResults.length) {
+  
+    if (model.geometryResults.length) {
+      html += htmlGeometryTable(
+        tableNumber++,
+        state,
+        model.geometryResults,
+        model.dataName
+      );
+    }
+  
+    if (model.disorderRows.length) {
+      html += htmlDisorderTable(
+        tableNumber++,
+        model.disorderRows,
+        model.dataName
+      );
+    }
+  
+    if (
+      !model.bonds.length &&
+      !model.addedDistances.length &&
+      !model.angles.length &&
+      !model.geometryResults.length &&
+      !model.disorderRows.length
+    ) {
       html += "<p class=\"hint\">No values selected for the current element/atom selection.</p>";
     }
-
+  
     html += htmlSymmetryNotes(model.symmetryNotes);
-
+  
     if (state.reportOptions.showCaption) {
       html += "<h2>Figure caption</h2>";
       html += "<p><strong>Figure x.</strong> " + makeCaptionHtml(model, state) + "</p>";
     }
-
+  
     return html;
   }
 
@@ -1163,6 +1276,34 @@
     return out;
   }
 
+  function mdDisorderTable(tableNumber, rows, dataName) {
+    var out = "";
+  
+    if (!rows || !rows.length) {
+      return "";
+    }
+  
+    out += "## Table " + tableNumber + ": Disorder model for **" + dataName + "**.\n\n";
+    out += "| Assembly | Part | Occupancy | Atoms | Moiety | Restraints | Constraints | Comment |\n";
+    out += "|---|---:|---:|---|---|---|---|---|\n";
+  
+    rows.forEach(function (row) {
+      out +=
+        "| " + markdownCell(disorderCell(row.assembly)) +
+        " | " + markdownCell(disorderCell(row.part)) +
+        " | " + markdownCell(disorderCell(row.occupancy)) +
+        " | " + markdownCell(disorderCell(row.atomsText)) +
+        " | " + markdownCell(disorderCell(row.moiety)) +
+        " | " + markdownCell(disorderCell(row.restraints)) +
+        " | " + markdownCell(disorderCell(row.constraints)) +
+        " | " + markdownCell(disorderCell(row.comment)) +
+        " |\n";
+    });
+  
+    out += "\n";
+    return out;
+  }
+
   function makeMarkdown(state) {
     var model = getReportModel(state);
     var tableNumber = 1;
@@ -1217,8 +1358,22 @@
         model.dataName
       );
     }
-
-    if (!model.bonds.length && !model.addedDistances.length && !model.angles.length && !model.geometryResults.length) {
+    
+    if (model.disorderRows.length) {
+      out += mdDisorderTable(
+        tableNumber++,
+        model.disorderRows,
+        model.dataName
+      );
+    }
+    
+    if (
+      !model.bonds.length &&
+      !model.addedDistances.length &&
+      !model.angles.length &&
+      !model.geometryResults.length &&
+      !model.disorderRows.length
+    ) {
       out += "No values selected for the current element/atom selection.\n\n";
     }
 
@@ -1372,6 +1527,68 @@
     return out;
   }
 
+  function plainDisorderTable(tableNumber, rows, dataName) {
+    if (!rows || !rows.length) {
+      return "";
+    }
+  
+    var out = "";
+    var caption = "Table " + tableNumber + ": Disorder model for " + dataName + ".";
+  
+    var headers = [
+      "Assembly",
+      "Part",
+      "Occupancy",
+      "Atoms",
+      "Moiety",
+      "Restraints",
+      "Constraints",
+      "Comment"
+    ];
+  
+    var tableRows = rows.map(function (row) {
+      return [
+        disorderCell(row.assembly),
+        disorderCell(row.part),
+        disorderCell(row.occupancy),
+        disorderCell(row.atomsText),
+        disorderCell(row.moiety),
+        disorderCell(row.restraints),
+        disorderCell(row.constraints),
+        disorderCell(row.comment)
+      ];
+    });
+  
+    var widths = headers.map(function (h) {
+      return h.length;
+    });
+  
+    tableRows.forEach(function (row) {
+      row.forEach(function (cell, i) {
+        widths[i] = Math.max(widths[i], String(cell || "").length);
+      });
+    });
+  
+    function rowLine(cells) {
+      return cells.map(function (cell, i) {
+        return padRight(cell, widths[i]);
+      }).join("    ") + "\n";
+    }
+  
+    out += plainLine(caption);
+    out += rowLine(headers);
+    out += rowLine(widths.map(function (w) {
+      return "-".repeat(w);
+    }));
+  
+    tableRows.forEach(function (row) {
+      out += rowLine(row);
+    });
+  
+    out += "\n";
+    return out;
+  }
+
   function plainSymmetrySentence(notes) {
     if (!notes.length) {
       return "";
@@ -1492,8 +1709,22 @@
         model.dataName
       );
     }
-
-    if (!model.bonds.length && !model.addedDistances.length && !model.angles.length && !model.geometryResults.length) {
+    
+    if (model.disorderRows.length) {
+      out += plainDisorderTable(
+        tableNumber++,
+        model.disorderRows,
+        model.dataName
+      );
+    }
+    
+    if (
+      !model.bonds.length &&
+      !model.addedDistances.length &&
+      !model.angles.length &&
+      !model.geometryResults.length &&
+      !model.disorderRows.length
+    ) {
       out += "No values selected for the current element/atom selection.\n\n";
     }
 
@@ -1536,7 +1767,31 @@
         csvString(stripHtml(item.atomsHtml)),
         csvString(item.value),
         csvString(item.source),
-        csvNumber(item.numericalValue)
+        csvNumber(item.numericalValue),
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]);
+    }
+  
+    function addDisorder(row) {
+      rows.push([
+        csvString("disorder"),
+        csvString(disorderCell(row.atomsText)),
+        "",
+        csvString("disorder-helper"),
+        "",
+        csvString(disorderCell(row.assembly)),
+        csvString(disorderCell(row.part)),
+        csvString(disorderCell(row.occupancy)),
+        csvString(disorderCell(row.moiety)),
+        csvString(disorderCell(row.restraints)),
+        csvString(disorderCell(row.constraints)),
+        csvString(disorderCell(row.comment))
       ]);
     }
   
@@ -1545,12 +1800,20 @@
       "atoms",
       "cif-value",
       "source",
-      "value"
+      "value",
+      "assembly",
+      "part",
+      "occupancy",
+      "moiety",
+      "restraints",
+      "constraints",
+      "comment"
     ]);
   
     model.bonds.forEach(addItem);
     model.addedDistances.forEach(addItem);
     model.angles.forEach(addItem);
+    model.disorderRows.forEach(addDisorder);
   
     return rows.map(function (row) {
       return row.join(",");
@@ -1870,6 +2133,68 @@
     return out;
   }
 
+  function rtfDisorderRow(cells, bold) {
+    var widths = [1000, 1600, 2500, 3900, 5200, 6500, 7900, 10000];
+  
+    var out = "{\\trowd\\trgaph108\\trql";
+  
+    widths.forEach(function (w) {
+      out += "\\cellx" + w;
+    });
+  
+    cells.forEach(function (cell) {
+      out += "\\pard\\intbl \\f0\\fs18 " +
+        (bold ? "{\\b " + cell + "}" : cell) +
+        "\\cell";
+    });
+  
+    out += "\\row}\n";
+  
+    return out;
+  }
+  
+  function rtfDisorderTable(tableNumber, rows, dataName) {
+    if (!rows || !rows.length) {
+      return "";
+    }
+  
+    var out = "";
+  
+    out += rtfParagraph(
+      "{\\b Table " + tableNumber + ": }" +
+      rtfEscape("Disorder model for ") +
+      "{\\b " + rtfEscape(dataName) + "}."
+    );
+  
+    out += rtfDisorderRow([
+      rtfEscape("Assembly"),
+      rtfEscape("Part"),
+      rtfEscape("Occupancy"),
+      rtfEscape("Atoms"),
+      rtfEscape("Moiety"),
+      rtfEscape("Restraints"),
+      rtfEscape("Constraints"),
+      rtfEscape("Comment")
+    ], true);
+  
+    rows.forEach(function (row) {
+      out += rtfDisorderRow([
+        rtfEscape(disorderCell(row.assembly)),
+        rtfEscape(disorderCell(row.part)),
+        rtfEscape(disorderCell(row.occupancy)),
+        rtfEscape(disorderCell(row.atomsText)),
+        rtfEscape(disorderCell(row.moiety)),
+        rtfEscape(disorderCell(row.restraints)),
+        rtfEscape(disorderCell(row.constraints)),
+        rtfEscape(disorderCell(row.comment))
+      ], false);
+    });
+  
+    out += rtfBlankLine();
+  
+    return out;
+  }
+
   function rtfSymmetryNotes(notes) {
     if (!notes.length) {
       return "";
@@ -2003,6 +2328,14 @@
         model.geometryResults
       );
     }    
+
+    if (model.disorderRows.length) {
+      body += rtfDisorderTable(
+        tableNumber++,
+        model.disorderRows,
+        model.dataName
+      );
+    }
 
     body += rtfSymmetryNotes(model.symmetryNotes);
 

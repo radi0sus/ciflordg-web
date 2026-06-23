@@ -70,45 +70,63 @@
         </dl>
       </section>
 
-      <section class="panel">
-        <h2>Report options</h2>
-
-        <label>
+      <section class="panel report-options-panel">
+      <h2>Report options</h2>
+      
+      <div class="option-group">
+          <div class="option-group-title">Include in report</div>
+      
+          <label>
           <input id="opt-show-bonds" type="checkbox" checked>
           Bond lengths
-        </label>
-
-        <label>
+          </label>
+      
+          <label>
           <input id="opt-show-angles" type="checkbox" checked>
           Bond angles
-        </label>
-        
-        <label>
-          <input id="opt-middle-atom-only" type="checkbox">
-          Middle atom only for angles
-        </label>
-        
-        <label>
+          </label>
+      
+          <label>
+          <input id="opt-show-geometry" type="checkbox" checked>
+          Geometry parameters
+          </label>
+      
+          <label>
+            <input id="opt-show-disorder" type="checkbox" checked>
+            Disorder table
+          </label>
+          
+          <label>
           <input id="opt-show-caption" type="checkbox" checked>
           Figure caption
-        </label>
-
-        <label>
+          </label>
+      </div>
+      
+      <div class="option-group">
+          <div class="option-group-title">Report settings</div>
+      
+          <label>
+          <input id="opt-middle-atom-only" type="checkbox" checked>
+          Middle atom only for angles
+          </label>
+      
+          <label>
           <input id="opt-si-units" type="checkbox" checked>
           SI unit style
-        </label>
-
-        <label>
+          </label>
+      
+          <label>
           Added distances
           <select id="opt-added-display">
-            <option value="separate" selected>separate section</option>
-            <option value="merge">merge into bond table</option>
+              <option value="separate" selected>separate section</option>
+              <option value="merge">merge into bond table</option>
           </select>
-        </label>
+          </label>
+      </div>
       </section>
 
       <section class="panel warning-panel">
-        <h2>Warnings</h2>
+        <h2>Messages</h2>
         <ul id="warnings-list">
           <li>No CIF loaded.</li>
         </ul>
@@ -121,6 +139,7 @@
         <button class="tab" type="button" data-tab="average">Average</button>
         <button class="tab" type="button" data-tab="geometry">Geometry Parameters</button>
         <button class="tab" type="button" data-tab="interatomic">Interatomic Distances</button>
+        <button class="tab" type="button" data-tab="disorder">Disorder Helper</button>
       </nav>
 
       <!-- TAB 1: Selection & Preview -->
@@ -238,6 +257,50 @@
         </section>
       </section>
 
+      <!-- TAB 5: Disorder Helper -->
+      <section class="tab-page" id="tab-disorder">
+        <section class="panel">
+          <h2>Disorder Helper</h2>
+      
+          <p class="hint">
+            Disorder information is extracted from atom-site disorder fields and, if available,
+            from the embedded SHELXL RES file. Moiety and Comment fields can be edited manually.
+          </p>
+      
+          <div class="filter-grid">
+            <label class="checkbox-row">
+              <input id="opt-disorder-exclude-h" type="checkbox" checked>
+              exclude H atoms
+            </label>
+      
+            <label class="checkbox-row">
+              <input id="opt-disorder-verbose" type="checkbox">
+              verbose atom list
+            </label>
+          </div>
+      
+          <div class="table-toolbar">
+            <button type="button" id="btn-disorder-regenerate">Regenerate from CIF</button>
+            <button type="button" id="btn-disorder-clear-edits">Clear manual edits</button>
+          </div>
+      
+          <p id="disorder-summary" class="hint">No CIF loaded.</p>
+        </section>
+      
+        <section class="panel">
+          <h2>Disorder table</h2>
+      
+          <p class="hint">
+            The Moiety field supports free text and suggestions from the moiety library.
+            Comments are pre-filled where possible and can be edited.
+          </p>
+      
+          <div id="disorder-table"></div>
+        </section>
+      
+        <datalist id="disorder-moiety-list"></datalist>
+      </section>
+
       <!-- TAB 4: Interatomic Distances -->
       <section class="tab-page" id="tab-interatomic">
         <div class="two-column">
@@ -353,12 +416,12 @@
               </label>
 
               <label>
-                Min distance / A
+                Min distance / Å
                 <input id="search-min" type="number" value="1" step="0.1">
               </label>
 
               <label>
-                Max distance / A
+                Max distance / Å
                 <input id="search-max" type="number" value="4" step="0.1">
               </label>
             </div>
@@ -398,6 +461,8 @@
 
   <script src="static/js/data.js"></script>
   <script src="static/js/parser.js"></script>
+  <script src="static/js/moieties.js"></script>
+  <script src="static/js/disorder-helper.js"></script>
   <script src="static/js/core.js"></script>
   <script src="static/js/reports.js"></script>
   <script src="static/js/cshm.js"></script>

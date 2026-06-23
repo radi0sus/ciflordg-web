@@ -12,7 +12,7 @@
   }
 
   function getSelectedForReport(state, listName) {
-    return state[listName].filter(function (item) {
+    return (state[listName] || []).filter(function (item) {
       return item.report;
     });
   }
@@ -1260,6 +1260,7 @@
       state.hasLoadedCif = true;
 
       state.items = parsed.items;
+      state.parsedCif = parsed;
       state.cell = extractCell(parsed);
       state.atoms = atoms;
       state.elements = elements;
@@ -1279,20 +1280,79 @@
       };
       
       state.geometryResults = [];
-
+      
+      /*
+        Disorder Helper state
+      */
+      
+      state.disorderOptions = {
+        excludeHydrogen: true,
+        verbose: false
+      };
+      
+      state.disorderRows = [];
+      state.disorderEdits = {};
+      state.disorderSummary = {
+        atomSiteCount: 0,
+        disorderSiteCount: 0,
+        rowCount: 0,
+        hasShelxResFile: false
+      };
+      
+      if (CIFLord.DisorderHelper) {
+        CIFLord.DisorderHelper.regenerateFromParsed(state);
+      }
+      
+      /*
+        Sorting
+      */
+      
       state.sortOptions = {
         bonds: "cif",
-        angles: "cif"
+        angles: "cif",
+        addedDistances: "cif"
       };
-
+      
       state.selectionOptions = {
         independentOnly: false
       };
-
+      
+      /*
+        Report option fallbacks
+      */
+      
       state.reportOptions = state.reportOptions || {};
-
+      
+      if (typeof state.reportOptions.showBonds !== "boolean") {
+        state.reportOptions.showBonds = true;
+      }
+      
+      if (typeof state.reportOptions.showAngles !== "boolean") {
+        state.reportOptions.showAngles = true;
+      }
+      
+      if (typeof state.reportOptions.showGeometry !== "boolean") {
+        state.reportOptions.showGeometry = true;
+      }
+      
+      if (typeof state.reportOptions.showDisorder !== "boolean") {
+        state.reportOptions.showDisorder = true;
+      }
+      
+      if (typeof state.reportOptions.showCaption !== "boolean") {
+        state.reportOptions.showCaption = true;
+      }
+      
+      if (typeof state.reportOptions.siUnits !== "boolean") {
+        state.reportOptions.siUnits = true;
+      }
+      
+      if (!state.reportOptions.addedDisplay) {
+        state.reportOptions.addedDisplay = "separate";
+      }
+      
       if (typeof state.reportOptions.middleAtomOnly !== "boolean") {
-        state.reportOptions.middleAtomOnly = false;
+        state.reportOptions.middleAtomOnly = true;
       }
 
       state.warnings = [];

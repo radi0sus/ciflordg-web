@@ -5,7 +5,7 @@
 
   CIFLord.Data = {
     units: {
-      angstrom: "A",
+      angstrom: "Å",
       degree: "deg"
     },
 
@@ -18,10 +18,13 @@
       reportOptions: {
         showBonds: true,
         showAngles: true,
+        showGeometry: true,
+        showDisorder: true,
         showCaption: true,
+
         siUnits: true,
         addedDisplay: "separate",
-        middleAtomOnly: false
+        middleAtomOnly: true
       },
 
       selectionFilter: {
@@ -36,7 +39,8 @@
 
       sortOptions: {
         bonds: "cif",
-        angles: "cif"
+        angles: "cif",
+        addedDistances: "cif"
       },
 
       selectionOptions: {
@@ -46,15 +50,23 @@
       averageOptions: {
         middleAtomOnly: false
       },
-      
+
       geometryOptions: {
         centerElement: "",
         centerAtom: "",
         selectedLigandKeysByCenter: {}
       },
-      
+
       geometryResults: [],
-      
+
+      disorderOptions: {
+        excludeHydrogen: true,
+        verbose: false
+      },
+
+      disorderRows: [],
+      disorderEdits: {},
+
       items: {},
       cell: null,
       atoms: [],

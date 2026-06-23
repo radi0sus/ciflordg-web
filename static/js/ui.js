@@ -447,9 +447,22 @@
   function getSortOptions(state) {
     state.sortOptions = state.sortOptions || {
       bonds: "cif",
-      angles: "cif"
+      angles: "cif",
+      addedDistances: "cif"
     };
-
+  
+    if (!state.sortOptions.bonds) {
+      state.sortOptions.bonds = "cif";
+    }
+  
+    if (!state.sortOptions.angles) {
+      state.sortOptions.angles = "cif";
+    }
+  
+    if (!state.sortOptions.addedDistances) {
+      state.sortOptions.addedDistances = "cif";
+    }
+  
     return state.sortOptions;
   }
 
@@ -587,11 +600,10 @@
     if (!items.length) {
       return "<p class=\"hint\">No added interatomic distances.</p>";
     }
-
+  
     var rows = items.map(function (item) {
       return (
         "<tr>" +
-          "<td><input type=\"checkbox\" data-action=\"added-active\" data-id=\"" + item.id + "\"" + (item.report ? " checked" : "") + "></td>" +
           "<td>" + item.atomsHtml + "</td>" +
           "<td class=\"number\">" + item.value + "</td>" +
           "<td>" + (item.operation ? formatSymmetryOperationHtml(item.operation) : "") + "</td>" +
@@ -599,13 +611,12 @@
         "</tr>"
       );
     }).join("");
-
+  
     return (
       "<table class=\"data-table\">" +
         "<thead><tr>" +
-          "<th>Add</th>" +
           "<th>Atoms</th>" +
-          "<th>Distance / A</th>" +
+          "<th>Distance / Å</th>" +
           "<th>Symmetry operation</th>" +
           "<th>Remove</th>" +
         "</tr></thead>" +
@@ -658,9 +669,7 @@
 
     var bonds = filterItems(state.bonds, filter);
     var angles = filterItems(state.angles, filter);
-    var added = filterItems(state.addedDistances.filter(function (item) {
-      return item.report;
-    }), filter);
+    var added = filterItems(state.addedDistances, filter);
 
     bonds = applyIndependentOnly(bonds, state);
     angles = applyIndependentOnly(angles, state);
@@ -668,17 +677,18 @@
 
     bonds = sortItems(bonds, sortOptions.bonds);
     angles = sortItems(angles, sortOptions.angles);
-
+    added = sortItems(added, sortOptions.addedDistances);
+    
     var html = "";
-
+    
     html += "<h3>Selected bond lengths from CIF</h3>";
-    html += makeSortableValueTable("bonds", bonds, "Distance / A", sortOptions.bonds);
-
+    html += makeSortableValueTable("bonds", bonds, "Distance / Å", sortOptions.bonds);
+    
     html += "<h3>Selected bond angles from CIF</h3>";
     html += makeSortableValueTable("angles", angles, "Angle / deg", sortOptions.angles);
-
+    
     html += "<h3>Added interatomic distances</h3>";
-    html += makeSimpleTable(added, "Distance / A");
+    html += makeSortableValueTable("addedDistances", added, "Distance / Å", sortOptions.addedDistances);
 
     html += makeSymmetryBlock(state, bonds.concat(angles).concat(added));
 
@@ -904,9 +914,7 @@
     setText("average-bonds-title", "Average bond lengths / distances for " + label);
     setText("average-angles-title", "Average bond angles for " + label);
 
-    var activeAdded = state.addedDistances.filter(function (item) {
-      return item.report;
-    });
+    var activeAdded = state.addedDistances;
 
     var distanceItems = filterItems(state.bonds.concat(activeAdded), filter);
     var angleItems = filterItems(state.angles, filter);
@@ -919,7 +927,7 @@
     setHTML(
       "average-bonds",
       makeGroupedStatsTable("Å", distanceGroups, 4) +
-      "<p class=\"hint\">Added interatomic distances are included if they are checked in the Interatomic Distances tab.</p>" +
+      "<p class=\"hint\">Added interatomic distances are included if they are present in the Interatomic Distances tab.</p>" +
       "<p class=\"hint\">Sample standard deviation describes the scatter of grouped values; individual crystallographic e.s.d.s are not propagated.</p>"
     );
 
@@ -963,7 +971,7 @@
       isIdentitySymmetryOperation(res.operation) ? "—" : formatSymmetryOperationHtml(res.operation)
     );
 
-    setText("single-result-distance", res.value + " A");
+    setText("single-result-distance", res.value + " Å");
   }
 
   function renderInteratomic(state) {
@@ -1113,20 +1121,6 @@
       var listName = el.getAttribute("data-list");
       var id = el.getAttribute("data-id");
 
-      if (action === "added-active") {
-        var addedItem = state.addedDistances.find(function (item) {
-          return item.id === id;
-        });
-
-        if (addedItem) {
-          addedItem.report = el.checked;
-          addedItem.average = el.checked;
-          renderAll();
-        }
-
-        return;
-      }
-
       var list;
 
       if (listName === "lengths") {
@@ -1174,15 +1168,24 @@
 
         state.sortOptions = state.sortOptions || {
           bonds: "cif",
-          angles: "cif"
+          angles: "cif",
+          addedDistances: "cif"
         };
-
+        
+        if (!state.sortOptions.addedDistances) {
+          state.sortOptions.addedDistances = "cif";
+        }
+        
         if (listName === "bonds") {
           state.sortOptions.bonds = nextSortMode(state.sortOptions.bonds, sortKey);
         }
-
+        
         if (listName === "angles") {
           state.sortOptions.angles = nextSortMode(state.sortOptions.angles, sortKey);
+        }
+        
+        if (listName === "addedDistances") {
+          state.sortOptions.addedDistances = nextSortMode(state.sortOptions.addedDistances, sortKey);
         }
 
         renderAll();
@@ -1242,41 +1245,120 @@
   }
 
   function bindOptions(state, renderAll) {
-    $("opt-show-bonds").addEventListener("change", function () {
-      state.reportOptions.showBonds = this.checked;
-      renderAll();
-    });
-
-    $("opt-show-angles").addEventListener("change", function () {
-      state.reportOptions.showAngles = this.checked;
-      renderAll();
-    });
-
+    state.reportOptions = state.reportOptions || {};
+  
+    if (typeof state.reportOptions.showBonds !== "boolean") {
+      state.reportOptions.showBonds = true;
+    }
+  
+    if (typeof state.reportOptions.showAngles !== "boolean") {
+      state.reportOptions.showAngles = true;
+    }
+  
+    if (typeof state.reportOptions.showGeometry !== "boolean") {
+      state.reportOptions.showGeometry = true;
+    }
+  
+    if (typeof state.reportOptions.showDisorder !== "boolean") {
+      state.reportOptions.showDisorder = true;
+    }
+  
+    if (typeof state.reportOptions.showCaption !== "boolean") {
+      state.reportOptions.showCaption = true;
+    }
+  
+    if (typeof state.reportOptions.siUnits !== "boolean") {
+      state.reportOptions.siUnits = true;
+    }
+  
+    if (typeof state.reportOptions.middleAtomOnly !== "boolean") {
+      state.reportOptions.middleAtomOnly = true;
+    }
+  
+    if (!state.reportOptions.addedDisplay) {
+      state.reportOptions.addedDisplay = "separate";
+    }
+  
+    var showBonds = $("opt-show-bonds");
+    var showAngles = $("opt-show-angles");
+    var showGeometry = $("opt-show-geometry");
+    var showDisorder = $("opt-show-disorder");
+    var showCaption = $("opt-show-caption");
     var middleAtomOnly = $("opt-middle-atom-only");
+    var siUnits = $("opt-si-units");
+    var addedDisplay = $("opt-added-display");
+  
+    if (showBonds) {
+      showBonds.checked = !!state.reportOptions.showBonds;
+  
+      showBonds.addEventListener("change", function () {
+        state.reportOptions.showBonds = this.checked;
+        renderAll();
+      });
+    }
+  
+    if (showAngles) {
+      showAngles.checked = !!state.reportOptions.showAngles;
+  
+      showAngles.addEventListener("change", function () {
+        state.reportOptions.showAngles = this.checked;
+        renderAll();
+      });
+    }
+  
+    if (showGeometry) {
+      showGeometry.checked = !!state.reportOptions.showGeometry;
+  
+      showGeometry.addEventListener("change", function () {
+        state.reportOptions.showGeometry = this.checked;
+        renderAll();
+      });
+    }
+  
+    if (showDisorder) {
+      showDisorder.checked = !!state.reportOptions.showDisorder;
+  
+      showDisorder.addEventListener("change", function () {
+        state.reportOptions.showDisorder = this.checked;
+        renderAll();
+      });
+    }
 
+    if (showCaption) {
+      showCaption.checked = !!state.reportOptions.showCaption;
+  
+      showCaption.addEventListener("change", function () {
+        state.reportOptions.showCaption = this.checked;
+        renderAll();
+      });
+    }
+  
     if (middleAtomOnly) {
       middleAtomOnly.checked = !!state.reportOptions.middleAtomOnly;
-
+  
       middleAtomOnly.addEventListener("change", function () {
         state.reportOptions.middleAtomOnly = this.checked;
         renderAll();
       });
     }
-
-    $("opt-show-caption").addEventListener("change", function () {
-      state.reportOptions.showCaption = this.checked;
-      renderAll();
-    });
-
-    $("opt-si-units").addEventListener("change", function () {
-      state.reportOptions.siUnits = this.checked;
-      renderAll();
-    });
-
-    $("opt-added-display").addEventListener("change", function () {
-      state.reportOptions.addedDisplay = this.value;
-      renderAll();
-    });
+  
+    if (siUnits) {
+      siUnits.checked = !!state.reportOptions.siUnits;
+  
+      siUnits.addEventListener("change", function () {
+        state.reportOptions.siUnits = this.checked;
+        renderAll();
+      });
+    }
+  
+    if (addedDisplay) {
+      addedDisplay.value = state.reportOptions.addedDisplay || "separate";
+  
+      addedDisplay.addEventListener("change", function () {
+        state.reportOptions.addedDisplay = this.value;
+        renderAll();
+      });
+    }
   }
 
   function bindIndependentOption(state, renderAll) {
@@ -1559,7 +1641,11 @@
 
       state.selectionFilter = { element: "all", atom: "all" };
       state.averageFilter = { element: "all", atom: "all" };
-      state.sortOptions = { bonds: "cif", angles: "cif" };
+      state.sortOptions = {
+        bonds: "cif",
+        angles: "cif",
+        addedDistances: "cif"
+      };
       state.selectionOptions = { independentOnly: false };
 
       if (!state.reportOptions) {
@@ -1567,7 +1653,7 @@
       }
 
       if (typeof state.reportOptions.middleAtomOnly !== "boolean") {
-        state.reportOptions.middleAtomOnly = false;
+        state.reportOptions.middleAtomOnly = true;
       }
 
       renderAll();
@@ -1581,11 +1667,50 @@
     init: function (state) {
       state.selectionFilter = { element: "all", atom: "all" };
       state.averageFilter = { element: "all", atom: "all" };
-      state.sortOptions = state.sortOptions || { bonds: "cif", angles: "cif" };
+      state.sortOptions = state.sortOptions || {
+        bonds: "cif",
+        angles: "cif",
+        addedDistances: "cif"
+      };
+      
+      if (!state.sortOptions.addedDistances) {
+        state.sortOptions.addedDistances = "cif";
+      }
       state.selectionOptions = state.selectionOptions || { independentOnly: false };
 
       state.reportOptions = state.reportOptions || {};
-      state.reportOptions.middleAtomOnly = !!state.reportOptions.middleAtomOnly;
+      
+      if (typeof state.reportOptions.showBonds !== "boolean") {
+        state.reportOptions.showBonds = true;
+      }
+      
+      if (typeof state.reportOptions.showAngles !== "boolean") {
+        state.reportOptions.showAngles = true;
+      }
+      
+      if (typeof state.reportOptions.showGeometry !== "boolean") {
+        state.reportOptions.showGeometry = true;
+      }
+      
+      if (typeof state.reportOptions.showDisorder !== "boolean") {
+        state.reportOptions.showDisorder = true;
+      }
+      
+      if (typeof state.reportOptions.showCaption !== "boolean") {
+        state.reportOptions.showCaption = true;
+      }
+      
+      if (typeof state.reportOptions.siUnits !== "boolean") {
+        state.reportOptions.siUnits = true;
+      }
+      
+      if (typeof state.reportOptions.middleAtomOnly !== "boolean") {
+        state.reportOptions.middleAtomOnly = true;
+      }
+      
+      if (!state.reportOptions.addedDisplay) {
+        state.reportOptions.addedDisplay = "separate";
+      }
 
       bindTabs(function () {
         updateActionButtons(state);
@@ -1599,6 +1724,10 @@
       
         if (CIFLord.GeometryParameters) {
           CIFLord.GeometryParameters.render(state);
+        }
+      
+        if (CIFLord.DisorderHelper) {
+          CIFLord.DisorderHelper.render(state);
         }
       
         renderInteratomic(state);
@@ -1617,6 +1746,10 @@
       
       if (CIFLord.GeometryParameters) {
         CIFLord.GeometryParameters.init(state, renderAll);
+      }
+      
+      if (CIFLord.DisorderHelper) {
+        CIFLord.DisorderHelper.init(state, renderAll);
       }
       
       renderAll();
