@@ -412,22 +412,25 @@
     }
   }
 
+  function activateTab(name, onChange) {
+    document.querySelectorAll(".tab").forEach(function (tab) {
+      var isActive = tab.getAttribute("data-tab") === name;
+      tab.classList.toggle("active", isActive);
+    });
+
+    document.querySelectorAll(".tab-page").forEach(function (page) {
+      page.classList.toggle("active", page.id === "tab-" + name);
+    });
+
+    if (typeof onChange === "function") {
+      onChange(name);
+    }
+  }
+
   function bindTabs(onChange) {
     document.querySelectorAll(".tab").forEach(function (tab) {
       tab.addEventListener("click", function () {
-        var name = tab.getAttribute("data-tab");
-  
-        document.querySelectorAll(".tab").forEach(function (t) {
-          t.classList.toggle("active", t === tab);
-        });
-  
-        document.querySelectorAll(".tab-page").forEach(function (page) {
-          page.classList.toggle("active", page.id === "tab-" + name);
-        });
-  
-        if (typeof onChange === "function") {
-          onChange(name);
-        }
+        activateTab(tab.getAttribute("data-tab"), onChange);
       });
     });
   }
@@ -1656,6 +1659,12 @@
         state.reportOptions.middleAtomOnly = true;
       }
 
+      if (CIFLord.OrtepUI) {
+        CIFLord.OrtepUI.reset(state);
+      }
+
+      activateTab("selection");
+
       renderAll();
       showToast("Loaded " + file.name);
     };
@@ -1712,7 +1721,11 @@
         state.reportOptions.addedDisplay = "separate";
       }
 
-      bindTabs(function () {
+      bindTabs(function (name) {
+        if (name === "ortep" && CIFLord.OrtepUI) {
+          CIFLord.OrtepUI.ensureInitialized(state);
+        }
+
         updateActionButtons(state);
       });
 
@@ -1721,15 +1734,19 @@
         renderMeta(state);
         renderSelectionTables(state);
         renderAverage(state);
-      
+
         if (CIFLord.GeometryParameters) {
           CIFLord.GeometryParameters.render(state);
         }
-      
+
         if (CIFLord.DisorderHelper) {
           CIFLord.DisorderHelper.render(state);
         }
-      
+
+        if (CIFLord.OrtepUI) {
+          CIFLord.OrtepUI.renderShell(state);
+        }
+
         renderInteratomic(state);
         renderPreview(state);
         updateActionButtons(state);
@@ -1743,15 +1760,19 @@
       bindInteratomicButtons(state, renderAll);
       bindExportButtons(state);
       bindFileLoading(state, renderAll);
-      
+
       if (CIFLord.GeometryParameters) {
         CIFLord.GeometryParameters.init(state, renderAll);
       }
-      
+
       if (CIFLord.DisorderHelper) {
         CIFLord.DisorderHelper.init(state, renderAll);
       }
-      
+
+      if (CIFLord.OrtepUI) {
+        CIFLord.OrtepUI.init(state);
+      }
+
       renderAll();
     }
   };

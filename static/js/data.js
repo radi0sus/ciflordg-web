@@ -59,6 +59,58 @@
 
       geometryResults: [],
 
+      ortep: {
+        initialized: false,
+
+        model: null,
+        components: [],
+        fragment: null,
+        viewState: null,
+
+        liveSvg: "",
+        lastFitScale: null,
+
+        sourceFilename: "",
+
+        options: {
+          componentId: "",
+          probability: 50,
+
+          styleScale: 1,
+          fixedDrawingScale: false,
+          projectionScale: 80,
+          labelFontSize: 14,
+
+          maxAtoms: 200,
+          maxRadius: 20,
+          maxDepth: 14,
+
+          showLabels: true,
+          labelCarbon: false,
+          labelHydrogen: false,
+          showBackfaces: false,
+          twoColoredBonds: true,
+
+          showHydrogen: false,
+          addMissingHydrogenAtoms: true
+        },
+
+        displayOptions: {
+          showHydrogen: true,
+          labelCarbon: false,
+          labelHydrogen: false,
+          atomOverrides: {},
+          bondOverrides: {}
+        },
+
+        selectedItem: null,
+
+        dragging: false,
+        dragMoved: false,
+        lastMouse: null,
+        renderPending: false
+      },
+
       disorderOptions: {
         excludeHydrogen: true,
         verbose: false

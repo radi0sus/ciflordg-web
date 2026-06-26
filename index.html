@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link rel="stylesheet" href="static/css/app.css">
+  <link rel="stylesheet" href="static/css/ortep.css">
   <link rel="stylesheet" href="static/css/print.css">
 </head>
 
@@ -15,20 +16,20 @@
       <h1>CIFLord Web</h1>
       <p class="subtitle">CIF Preview · Average · Interatomic Distances</p>
     </div>
-  
+
     <div class="top-toolbar" aria-label="Main actions">
       <div class="toolbar-group">
         <span class="toolbar-label">Load</span>
         <button type="button" id="btn-load-proxy">CIF</button>
       </div>
-  
+
       <div class="toolbar-group">
         <span class="toolbar-label">Copy</span>
         <button type="button" id="btn-copy-formatted" disabled>Preview</button>
         <button type="button" id="btn-copy-md" disabled>Markdown</button>
         <button type="button" id="btn-copy-text" disabled>Plain Text</button>
       </div>
-  
+
       <div class="toolbar-group">
         <span class="toolbar-label">Save</span>
         <button type="button" id="btn-download-rtf" disabled>RTF</button>
@@ -71,58 +72,58 @@
       </section>
 
       <section class="panel report-options-panel">
-      <h2>Report options</h2>
-      
-      <div class="option-group">
+        <h2>Report options</h2>
+
+        <div class="option-group">
           <div class="option-group-title">Include in report</div>
-      
+
           <label>
-          <input id="opt-show-bonds" type="checkbox" checked>
-          Bond lengths
+            <input id="opt-show-bonds" type="checkbox" checked>
+            Bond lengths
           </label>
-      
+
           <label>
-          <input id="opt-show-angles" type="checkbox" checked>
-          Bond angles
+            <input id="opt-show-angles" type="checkbox" checked>
+            Bond angles
           </label>
-      
+
           <label>
-          <input id="opt-show-geometry" type="checkbox" checked>
-          Geometry parameters
+            <input id="opt-show-geometry" type="checkbox" checked>
+            Geometry parameters
           </label>
-      
+
           <label>
             <input id="opt-show-disorder" type="checkbox" checked>
             Disorder table
           </label>
-          
+
           <label>
-          <input id="opt-show-caption" type="checkbox" checked>
-          Figure caption
+            <input id="opt-show-caption" type="checkbox" checked>
+            Figure caption
           </label>
-      </div>
-      
-      <div class="option-group">
+        </div>
+
+        <div class="option-group">
           <div class="option-group-title">Report settings</div>
-      
+
           <label>
-          <input id="opt-middle-atom-only" type="checkbox" checked>
-          Middle atom only for angles
+            <input id="opt-middle-atom-only" type="checkbox" checked>
+            Middle atom only for angles
           </label>
-      
+
           <label>
-          <input id="opt-si-units" type="checkbox" checked>
-          SI unit style
+            <input id="opt-si-units" type="checkbox" checked>
+            SI unit style
           </label>
-      
+
           <label>
-          Added distances
-          <select id="opt-added-display">
+            Added distances
+            <select id="opt-added-display">
               <option value="separate" selected>separate section</option>
               <option value="merge">merge into bond table</option>
-          </select>
+            </select>
           </label>
-      </div>
+        </div>
       </section>
 
       <section class="panel warning-panel">
@@ -140,6 +141,7 @@
         <button class="tab" type="button" data-tab="geometry">Geometry Parameters</button>
         <button class="tab" type="button" data-tab="interatomic">Interatomic Distances</button>
         <button class="tab" type="button" data-tab="disorder">Disorder Helper</button>
+        <button class="tab" type="button" data-tab="ortep">ORTEP</button>
       </nav>
 
       <!-- TAB 1: Selection & Preview -->
@@ -172,6 +174,7 @@
             <div class="preview-header">
               <h2>Preview</h2>
             </div>
+
             <article id="report-preview" class="report-preview"></article>
           </section>
         </div>
@@ -192,7 +195,6 @@
               Atom
               <select id="avg-select-atom"></select>
             </label>
-
           </div>
 
           <p class="hint">
@@ -215,90 +217,46 @@
       <section class="tab-page" id="tab-geometry">
         <section class="panel">
           <h2>Coordination selection</h2>
-      
+
           <div class="filter-grid">
             <label>
               Element
               <select id="geom-center-element"></select>
             </label>
-      
+
             <label>
               Central atom
               <select id="geom-center-atom"></select>
             </label>
           </div>
-      
+
           <p class="hint">
             Ligand atoms are taken from the CIF geometry bond table. Adjust the ligand selection manually if disorder,
             alternative positions, or unwanted contacts are present.
           </p>
-      
+
           <h3>Ligand atoms from CIF geometry bond table</h3>
           <div id="geom-ligands"></div>
-      
+
           <div class="table-toolbar">
             <button type="button" id="btn-geom-calculate">Calculate</button>
           </div>
         </section>
-      
+
         <section class="panel">
           <h2>Calculated geometry parameters</h2>
-      
+
           <p class="hint">
             CShM values are calculated for coordination numbers 2–6 and are shown as a comparison between the available
             ideal shapes for the current coordination number. Descriptors include τ₄, τ₄′, τ₅, and coordination polyhedron volume.
           </p>
-      
+
           <div class="table-toolbar">
             <button type="button" id="btn-geom-clear">Clear calculated parameters</button>
           </div>
-      
+
           <div id="geom-results"></div>
         </section>
-      </section>
-
-      <!-- TAB 5: Disorder Helper -->
-      <section class="tab-page" id="tab-disorder">
-        <section class="panel">
-          <h2>Disorder Helper</h2>
-      
-          <p class="hint">
-            Disorder information is extracted from atom-site disorder fields and, if available,
-            from the embedded SHELXL RES file. Moiety and Comment fields can be edited manually.
-          </p>
-      
-          <div class="filter-grid">
-            <label class="checkbox-row">
-              <input id="opt-disorder-exclude-h" type="checkbox" checked>
-              exclude H atoms
-            </label>
-      
-            <label class="checkbox-row">
-              <input id="opt-disorder-verbose" type="checkbox">
-              verbose atom list
-            </label>
-          </div>
-      
-          <div class="table-toolbar">
-            <button type="button" id="btn-disorder-regenerate">Regenerate from CIF</button>
-            <button type="button" id="btn-disorder-clear-edits">Clear manual edits</button>
-          </div>
-      
-          <p id="disorder-summary" class="hint">No CIF loaded.</p>
-        </section>
-      
-        <section class="panel">
-          <h2>Disorder table</h2>
-      
-          <p class="hint">
-            The Moiety field supports free text and suggestions from the moiety library.
-            Comments are pre-filled where possible and can be edited.
-          </p>
-      
-          <div id="disorder-table"></div>
-        </section>
-      
-        <datalist id="disorder-moiety-list"></datalist>
       </section>
 
       <!-- TAB 4: Interatomic Distances -->
@@ -308,67 +266,67 @@
             <h2>Single distance</h2>
 
             <div class="form-grid">
-            <div class="pair-row full">
+              <div class="pair-row full">
                 <label>
-                Element A
-                <select id="single-element-a"></select>
+                  Element A
+                  <select id="single-element-a"></select>
                 </label>
-            
+
                 <label>
-                Atom A
-                <select id="single-atom-a"></select>
+                  Atom A
+                  <select id="single-atom-a"></select>
                 </label>
-            </div>
-            
-            <div class="pair-row full">
+              </div>
+
+              <div class="pair-row full">
                 <label>
-                Element B
-                <select id="single-element-b"></select>
+                  Element B
+                  <select id="single-element-b"></select>
                 </label>
-            
+
                 <label>
-                Atom B
-                <select id="single-atom-b"></select>
+                  Atom B
+                  <select id="single-atom-b"></select>
                 </label>
-            </div>
-            
-            <label class="full">
+              </div>
+
+              <label class="full">
                 Symmetry operation
                 <select id="single-symop"></select>
-            </label>
-            
-            <label>
+              </label>
+
+              <label>
                 Code X
                 <select id="single-code-x">
-                <option>3</option>
-                <option>4</option>
-                <option selected>5</option>
-                <option>6</option>
-                <option>7</option>
+                  <option>3</option>
+                  <option>4</option>
+                  <option selected>5</option>
+                  <option>6</option>
+                  <option>7</option>
                 </select>
-            </label>
-            
-            <label>
+              </label>
+
+              <label>
                 Code Y
                 <select id="single-code-y">
-                <option>3</option>
-                <option>4</option>
-                <option selected>5</option>
-                <option>6</option>
-                <option>7</option>
+                  <option>3</option>
+                  <option>4</option>
+                  <option selected>5</option>
+                  <option>6</option>
+                  <option>7</option>
                 </select>
-            </label>
-            
-            <label>
+              </label>
+
+              <label>
                 Code Z
                 <select id="single-code-z">
-                <option>3</option>
-                <option>4</option>
-                <option selected>5</option>
-                <option>6</option>
-                <option>7</option>
+                  <option>3</option>
+                  <option>4</option>
+                  <option selected>5</option>
+                  <option>6</option>
+                  <option>7</option>
                 </select>
-            </label>
+              </label>
             </div>
 
             <div class="result-box">
@@ -453,20 +411,278 @@
         </section>
       </section>
 
+      <!-- TAB 5: Disorder Helper -->
+      <section class="tab-page" id="tab-disorder">
+        <section class="panel">
+          <h2>Disorder Helper</h2>
+
+          <p class="hint">
+            Disorder information is extracted from atom-site disorder fields and, if available,
+            from the embedded SHELXL RES file. Moiety and Comment fields can be edited manually.
+          </p>
+
+          <div class="filter-grid">
+            <label class="checkbox-row">
+              <input id="opt-disorder-exclude-h" type="checkbox" checked>
+              exclude H atoms
+            </label>
+
+            <label class="checkbox-row">
+              <input id="opt-disorder-verbose" type="checkbox">
+              verbose atom list
+            </label>
+          </div>
+
+          <div class="table-toolbar">
+            <button type="button" id="btn-disorder-regenerate">Regenerate from CIF</button>
+            <button type="button" id="btn-disorder-clear-edits">Clear manual edits</button>
+          </div>
+
+          <p id="disorder-summary" class="hint">No CIF loaded.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Disorder table</h2>
+
+          <p class="hint">
+            The Moiety field supports free text and suggestions from the moiety library.
+            Comments are pre-filled where possible and can be edited.
+          </p>
+
+          <div id="disorder-table"></div>
+        </section>
+
+        <datalist id="disorder-moiety-list"></datalist>
+      </section>
+
+      <!-- TAB 6: ORTEP -->
+      <section class="tab-page" id="tab-ortep">
+        <div class="ortep-editor-layout">
+          <section class="panel ortep-svg-panel">
+            <div class="ortep-panel-header">
+              <div>
+                <h2>SVG output</h2>
+                <p class="hint">
+                  Drag the SVG to rotate the view. Double-click to reset the view.
+                  Shift-click an atom toggles its label. Ctrl-click or Cmd-click an atom or bond hides it.
+                </p>
+              </div>
+            </div>
+
+            <div id="ortep-svg-output" class="ortep-svg-box"></div>
+            <div id="ortep-symmetry-notes" class="ortep-symmetry-notes hint"></div>
+          </section>
+
+          <aside class="ortep-side-column">
+            <section class="panel ortep-controls-panel">
+              <div class="ortep-panel-header">
+                <div>
+                  <h2>ORTEP</h2>
+                  <p id="ortep-status" class="hint">No CIF loaded.</p>
+                </div>
+              </div>
+
+              <details class="ortep-section" open>
+                <summary>Structure</summary>
+
+                <div class="ortep-section-body">
+                  <label>
+                    Fragment / moiety
+                    <select id="ortep-select-component"></select>
+                  </label>
+
+                  <label>
+                    Probability
+                    <select id="ortep-select-probability">
+                      <option value="30">30%</option>
+                      <option value="50" selected>50%</option>
+                      <option value="70">70%</option>
+                      <option value="90">90%</option>
+                    </select>
+                  </label>
+                </div>
+              </details>
+
+              <details class="ortep-section" open>
+                <summary>Display</summary>
+
+                <div class="ortep-section-body">
+                  <div class="ortep-slider-control">
+                    <div class="ortep-slider-meta">
+                      <label for="ortep-input-style-scale">Style scale</label>
+                      <span id="ortep-style-scale-value" class="ortep-slider-value">1.00×</span>
+                    </div>
+                    <input id="ortep-input-style-scale" type="range" value="1" min="0.1" max="3" step="0.05">
+                  </div>
+
+                  <div class="ortep-slider-control">
+                    <div class="ortep-slider-meta">
+                      <label for="ortep-input-label-font-size">Label size</label>
+                      <span id="ortep-label-font-size-value" class="ortep-slider-value">14</span>
+                    </div>
+                    <input id="ortep-input-label-font-size" type="range" value="14" min="8" max="32" step="1">
+                  </div>
+
+                  <label class="checkbox-row ortep-checkbox-row">
+                    <input id="ortep-opt-fixed-drawing-scale" type="checkbox">
+                    Fixed drawing scale
+                  </label>
+
+                  <div class="ortep-slider-control">
+                    <div class="ortep-slider-meta">
+                      <label for="ortep-input-projection-scale">Drawing scale</label>
+                      <span id="ortep-projection-scale-value" class="ortep-slider-value">80 px/Å</span>
+                    </div>
+                    <input id="ortep-input-projection-scale" type="range" value="80" min="10" max="500" step="5" disabled>
+                  </div>
+                </div>
+              </details>
+
+              <details class="ortep-section">
+                <summary>Expansion</summary>
+
+                <div class="ortep-section-body">
+                  <div class="ortep-slider-control">
+                    <div class="ortep-slider-meta">
+                      <label for="ortep-input-max-atoms">Max atoms</label>
+                      <span id="ortep-max-atoms-value" class="ortep-slider-value">200</span>
+                    </div>
+                    <input id="ortep-input-max-atoms" type="range" value="200" min="10" max="2000" step="10">
+                  </div>
+
+                  <div class="ortep-slider-control">
+                    <div class="ortep-slider-meta">
+                      <label for="ortep-input-max-radius">Max radius / Å</label>
+                      <span id="ortep-max-radius-value" class="ortep-slider-value">20 Å</span>
+                    </div>
+                    <input id="ortep-input-max-radius" type="range" value="20" min="2" max="100" step="1">
+                  </div>
+
+                  <div class="ortep-slider-control">
+                    <div class="ortep-slider-meta">
+                      <label for="ortep-input-max-depth">Max expansion depth</label>
+                      <span id="ortep-max-depth-value" class="ortep-slider-value">14</span>
+                    </div>
+                    <input id="ortep-input-max-depth" type="range" value="14" min="1" max="50" step="1">
+                  </div>
+                </div>
+              </details>
+
+              <details class="ortep-section" open>
+                <summary>Options</summary>
+
+                <div class="ortep-section-body">
+                  <div class="ortep-checkbox-grid">
+                    <label class="checkbox-row ortep-checkbox-row">
+                      <input id="ortep-opt-show-labels" type="checkbox" checked>
+                      Show labels
+                    </label>
+
+                    <label class="checkbox-row ortep-checkbox-row">
+                      <input id="ortep-opt-label-c" type="checkbox">
+                      Label C atoms
+                    </label>
+
+                    <label class="checkbox-row ortep-checkbox-row">
+                      <input id="ortep-opt-label-h" type="checkbox">
+                      Label H atoms
+                    </label>
+
+                    <label class="checkbox-row ortep-checkbox-row">
+                      <input id="ortep-opt-show-backfaces" type="checkbox">
+                      Show ORTEP backfaces
+                    </label>
+
+                    <label class="checkbox-row ortep-checkbox-row">
+                      <input id="ortep-opt-two-colored-bonds" type="checkbox" checked>
+                      Two-colored bonds
+                    </label>
+
+                    <label class="checkbox-row ortep-checkbox-row">
+                      <input id="ortep-opt-show-h" type="checkbox">
+                      Show H atoms
+                    </label>
+
+                    <label class="checkbox-row ortep-checkbox-row">
+                      <input id="ortep-opt-add-missing-h" type="checkbox" checked>
+                      Add coordinate H atoms missing from CIF bonds
+                    </label>
+                  </div>
+                </div>
+              </details>
+
+              <div class="table-toolbar ortep-download-toolbar">
+                <button id="ortep-btn-download-svg" type="button" disabled>Download SVG</button>
+                <button id="ortep-btn-download-png" type="button" disabled>Download PNG</button>
+              </div>
+            </section>
+
+            <section class="panel ortep-override-panel">
+              <div class="ortep-panel-header">
+                <div>
+                  <h2>Manual overrides</h2>
+                </div>
+              </div>
+
+              <details class="ortep-section" open>
+                <summary>Selected item</summary>
+
+                <div class="ortep-section-body">
+                  <div id="ortep-selected-override" class="hint">No atom or bond selected.</div>
+                </div>
+              </details>
+
+              <details class="ortep-section">
+                <summary>Search</summary>
+
+                <div class="ortep-section-body">
+                  <label>
+                    Search atoms/bonds
+                    <input id="ortep-override-search" type="text" placeholder="e.g. C1, Ru1, N">
+                  </label>
+                </div>
+              </details>
+
+              <details class="ortep-section">
+                <summary>Atoms</summary>
+
+                <div class="ortep-section-body">
+                  <div id="ortep-atom-overrides" class="hint">No fragment.</div>
+                </div>
+              </details>
+
+              <details class="ortep-section">
+                <summary>Bonds</summary>
+
+                <div class="ortep-section-body">
+                  <div id="ortep-bond-overrides" class="hint">No fragment.</div>
+                </div>
+              </details>
+
+              <div class="table-toolbar ortep-override-toolbar">
+                <button id="ortep-btn-show-hidden-atoms" type="button">Show hidden atoms</button>
+                <button id="ortep-btn-reset-overrides" type="button">Reset overrides</button>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </section>
     </section>
-    
-     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-     
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </main>
 
   <script src="static/js/data.js"></script>
   <script src="static/js/parser.js"></script>
+  <script src="static/js/element-library.js"></script>
   <script src="static/js/moieties.js"></script>
   <script src="static/js/disorder-helper.js"></script>
   <script src="static/js/core.js"></script>
   <script src="static/js/reports.js"></script>
   <script src="static/js/cshm.js"></script>
   <script src="static/js/geometry-parameters.js"></script>
+  <script src="static/js/ortep-svg.js"></script>
+  <script src="static/js/ortep-ui.js"></script>
   <script src="static/js/ui.js"></script>
   <script src="static/js/app.js"></script>
 </body>
