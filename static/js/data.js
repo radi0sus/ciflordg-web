@@ -82,9 +82,9 @@
           projectionScale: 80,
           labelFontSize: 14,
 
-          maxAtoms: 200,
+          maxAtoms: 250,
           maxRadius: 20,
-          maxDepth: 14,
+          maxDepth: 17,
 
           showLabels: true,
           labelCarbon: false,

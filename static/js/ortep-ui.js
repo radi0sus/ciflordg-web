@@ -100,7 +100,7 @@
     }
 
     if (typeof ortep.options.maxAtoms !== "number") {
-      ortep.options.maxAtoms = 200;
+      ortep.options.maxAtoms = 250;
     }
 
     if (typeof ortep.options.maxRadius !== "number") {
@@ -108,7 +108,7 @@
     }
 
     if (typeof ortep.options.maxDepth !== "number") {
-      ortep.options.maxDepth = 14;
+      ortep.options.maxDepth = 17;
     }
 
     if (typeof ortep.options.showLabels !== "boolean") {
@@ -174,9 +174,9 @@
         projectionScale: 80,
         labelFontSize: 14,
 
-        maxAtoms: 200,
+        maxAtoms: 250,
         maxRadius: 20,
-        maxDepth: 14,
+        maxDepth: 17,
 
         showLabels: true,
         labelCarbon: false,
@@ -620,9 +620,9 @@
     options.projectionScale = numericControlValue("ortep-input-projection-scale", 80);
     options.labelFontSize = numericControlValue("ortep-input-label-font-size", 14);
 
-    options.maxAtoms = parseInt(numericControlValue("ortep-input-max-atoms", 200), 10);
+    options.maxAtoms = parseInt(numericControlValue("ortep-input-max-atoms", 250), 10);
     options.maxRadius = numericControlValue("ortep-input-max-radius", 20);
-    options.maxDepth = parseInt(numericControlValue("ortep-input-max-depth", 14), 10);
+    options.maxDepth = parseInt(numericControlValue("ortep-input-max-depth", 17), 10);
 
     options.showLabels = $("ortep-opt-show-labels")
       ? $("ortep-opt-show-labels").checked
