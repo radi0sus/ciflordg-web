@@ -79,8 +79,12 @@
       ortep.options.probability = 50;
     }
 
-    if (typeof ortep.options.styleScale !== "number") {
-      ortep.options.styleScale = 1;
+    if (typeof ortep.options.bondWidth !== "number") {
+      ortep.options.bondWidth = 3.4;
+    }
+
+    if (typeof ortep.options.ortepLineScale !== "number") {
+      ortep.options.ortepLineScale = 1;
     }
 
     if (typeof ortep.options.fixedDrawingScale !== "boolean") {
@@ -164,7 +168,8 @@
         componentId: "",
         probability: 50,
 
-        styleScale: 1,
+        bondWidth: 3.4,
+        ortepLineScale: 1,
         fixedDrawingScale: false,
         projectionScale: 80,
         labelFontSize: 14,
@@ -509,15 +514,20 @@
   function updateSliderLabels(state) {
     var ortep = ensureState(state);
 
-    var styleScaleValue = $("ortep-style-scale-value");
+    var bondWidthValue = $("ortep-bond-width-value");
+    var ortepLineScaleValue = $("ortep-ortep-line-scale-value");
     var projectionScaleValue = $("ortep-projection-scale-value");
     var labelFontSizeValue = $("ortep-label-font-size-value");
     var maxAtomsValue = $("ortep-max-atoms-value");
     var maxRadiusValue = $("ortep-max-radius-value");
     var maxDepthValue = $("ortep-max-depth-value");
 
-    if (styleScaleValue) {
-      styleScaleValue.textContent = Number(ortep.options.styleScale).toFixed(2) + "×";
+    if (bondWidthValue) {
+      bondWidthValue.textContent = Number(ortep.options.bondWidth).toFixed(1);
+    }
+
+    if (ortepLineScaleValue) {
+      ortepLineScaleValue.textContent = Number(ortep.options.ortepLineScale).toFixed(2) + "×";
     }
 
     if (projectionScaleValue) {
@@ -562,7 +572,8 @@
     }
 
     setValue("ortep-select-probability", options.probability);
-    setValue("ortep-input-style-scale", options.styleScale);
+    setValue("ortep-input-bond-width", options.bondWidth);
+    setValue("ortep-input-ortep-line-scale", options.ortepLineScale);
     setValue("ortep-input-projection-scale", options.projectionScale);
     setValue("ortep-input-label-font-size", options.labelFontSize);
     setValue("ortep-input-max-atoms", options.maxAtoms);
@@ -601,7 +612,8 @@
 
     options.probability = parseInt(numericControlValue("ortep-select-probability", 50), 10);
 
-    options.styleScale = numericControlValue("ortep-input-style-scale", 1);
+    options.bondWidth = numericControlValue("ortep-input-bond-width", 3.4);
+    options.ortepLineScale = numericControlValue("ortep-input-ortep-line-scale", 1);
     options.fixedDrawingScale = $("ortep-opt-fixed-drawing-scale")
       ? $("ortep-opt-fixed-drawing-scale").checked
       : false;
@@ -1094,7 +1106,8 @@
 
       probability: ortep.options.probability,
       ellipsoidScale: 1,
-      styleScale: ortep.options.styleScale,
+      bondWidth: ortep.options.bondWidth,
+      ortepLineScale: ortep.options.ortepLineScale,
 
       fixedDrawingScale: ortep.options.fixedDrawingScale,
       projectionScale: ortep.options.projectionScale,
@@ -1609,7 +1622,8 @@
     });
 
     [
-      "ortep-input-style-scale",
+      "ortep-input-bond-width",
+      "ortep-input-ortep-line-scale",
       "ortep-input-label-font-size"
     ].forEach(function (id) {
       var el = $(id);

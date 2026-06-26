@@ -76,7 +76,8 @@
           componentId: "",
           probability: 50,
 
-          styleScale: 1,
+          bondWidth: 3.4,
+          ortepLineScale: 1,
           fixedDrawingScale: false,
           projectionScale: 80,
           labelFontSize: 14,

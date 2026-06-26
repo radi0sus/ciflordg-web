@@ -2625,52 +2625,58 @@
       Small fragments get a large projection scale; large fragments get a
       smaller projection scale.
 
-      Text size and stroke widths are adjusted inversely to this projection
-      scale so that bonds, labels, and ORTEP ring lines remain visually
-      consistent across differently sized moieties.
-
-      This does not change the physical ellipsoid size.
+      The automatic factor keeps visual stroke widths useful across different
+      molecular sizes. User controls are now separated into:
+      - bondWidth for bonds, halos, and shadows
+      - ortepLineScale for ellipsoid and fallback atom outline lines
     */
     var referenceProjectionScale = options.referenceProjectionScale || 90;
-    
-    /*
-      Automatic style scaling relative to molecular projection scale.
-    
-      The molecule itself is fitted into the SVG by `scale`.
-    
-      Small fragments get a large scale.
-      Large fragments get a small scale.
-    
-      Stroke widths and labels follow this direction, so the visual relation
-      between molecule size and line/text thickness stays more consistent.
-    */
+
     var autoStyleScale = Math.pow(
       Math.max(scale, 1e-6) / referenceProjectionScale,
       0.45
     );
-    
+
     /*
       Keep the automatic correction useful but not extreme.
     */
     autoStyleScale = Math.max(0.55, Math.min(1.80, autoStyleScale));
-    
-    var userStyleScale = options.styleScale || 1;
-    var finalStyleScale = autoStyleScale * userStyleScale;
-
-    bondWidth *= finalStyleScale;
 
     /*
-      The white bond halo should scale with the overall style, but less
-      strongly than the actual bond core. Otherwise large styleScale values
-      create overly wide white cutouts around bonds.
+      Bond width is an explicit user-facing control.
+      The value is interpreted as the base bond-core width before automatic
+      projection-size correction.
     */
-    bondHaloWidth *= Math.pow(finalStyleScale, 0.55);
+    var userBondWidth = Number(options.bondWidth);
 
-    bondShadowWidth *= finalStyleScale;
+    if (!isFinite(userBondWidth) || userBondWidth <= 0) {
+      userBondWidth = bondWidth;
+    }
+
+    var baseBondWidth = 3.4;
+    var baseHaloExtra = Math.max(0, bondHaloWidth - baseBondWidth);
+    var baseShadowExtra = Math.max(0, bondShadowWidth - baseBondWidth);
+
+    bondWidth = userBondWidth * autoStyleScale;
 
     /*
-      bondAtomGap is a screen-space clipping parameter, not a style
-      parameter. It should not grow strongly with styleScale.
+      The white halo follows the chosen bond width, but its additional
+      margin scales more softly than the bond core.
+    */
+    bondHaloWidth =
+      bondWidth +
+      baseHaloExtra * Math.pow(autoStyleScale, 0.55);
+
+    /*
+      The grey shadow follows the chosen bond width more closely.
+    */
+    bondShadowWidth =
+      bondWidth +
+      baseShadowExtra * autoStyleScale;
+
+    /*
+      bondAtomGap is a screen-space clipping parameter, not a general style
+      scale parameter.
 
       Zero bond gap:
       - disables the white bond halo
@@ -2691,8 +2697,20 @@
     }
 
     /*
+      ORTEP line scale controls ellipsoid ring lines and fallback atom
+      outline widths. Element-specific width differences are preserved.
+    */
+    var userOrtepLineScale = Number(options.ortepLineScale);
+
+    if (!isFinite(userOrtepLineScale) || userOrtepLineScale <= 0) {
+      userOrtepLineScale = 1;
+    }
+
+    var finalOrtepLineScale = autoStyleScale * userOrtepLineScale;
+
+    /*
       Labels are controlled independently by labelFontSize.
-      styleScale should not change label size.
+      Bond width and ORTEP line scale should not change label size.
     */
     labelFontSize = Math.max(6, labelFontSize);
 
@@ -2702,9 +2720,9 @@
     labelPadding = Math.max(1.0, labelPadding * labelSizeScale);
     labelGap *= labelSizeScale;
 
-    ellipsoidLineWidth *= finalStyleScale;
-    hydrogenEllipsoidLineWidth *= finalStyleScale;
-    atomFallbackLineWidth *= finalStyleScale;
+    ellipsoidLineWidth *= finalOrtepLineScale;
+    hydrogenEllipsoidLineWidth *= finalOrtepLineScale;
+    atomFallbackLineWidth *= finalOrtepLineScale;
     
     var bboxCenterX = (bbox.minX + bbox.maxX) / 2;
     var bboxCenterY = (bbox.minY + bbox.maxY) / 2;
@@ -2922,8 +2940,8 @@
         style.fill || "#f5f5f5",
         style.stroke || "#333333",
         Math.max(
-          0.8 * finalStyleScale,
-          (style.ellipsoidWidth || 1.2) * 0.75 * finalStyleScale
+          0.8 * finalOrtepLineScale,
+          (style.ellipsoidWidth || 1.2) * 0.75 * finalOrtepLineScale
         )
       );
     }
@@ -3810,17 +3828,10 @@
       var override = bondOverrideFor(bond);
       var bondDashed = override.style === "dashed";
       var bondDashArray = bondDashed
-        ? (12 * finalStyleScale).toFixed(2) + " " + (10 * finalStyleScale).toFixed(2)
+        ? (bondWidth * 3.5).toFixed(2) + " " + (bondWidth * 3.0).toFixed(2)
         : "";
       var bondLineCap = bondDashed ? "butt" : "round";
 
-      var paCenter = screenPoint(a.cart);
-      var pbCenter = screenPoint(b.cart);
-
-      /*
-        Clip bond endpoints to the visible atom/ellipsoid boundaries.
-        Bonds no longer go into the filled ellipsoids.
-      */
       var paCenter = screenPoint(a.cart);
       var pbCenter = screenPoint(b.cart);
 
@@ -4028,7 +4039,7 @@
               atom.element === "H"
                 ? hydrogenEllipsoidLineWidth
                 : (style.ellipsoidWidth
-                    ? style.ellipsoidWidth * finalStyleScale
+                    ? style.ellipsoidWidth * finalOrtepLineScale
                     : ellipsoidLineWidth),
               centerProjected.z,
               showBackfaces
@@ -4056,7 +4067,7 @@
             "\" fill=\"#ffffff\" stroke=\"" + color +
             "\" stroke-width=\"" + (
               style.fallbackStrokeWidth
-                ? style.fallbackStrokeWidth * finalStyleScale
+                ? style.fallbackStrokeWidth * finalOrtepLineScale
                 : atomFallbackLineWidth
             ) +
             "\"/>"
