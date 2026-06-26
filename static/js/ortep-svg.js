@@ -2358,6 +2358,12 @@
     var twoColoredBonds = options.twoColoredBonds === true;
 
     /*
+      Bond shadows are enabled by default.
+      Dashed bonds still suppress shadows separately below.
+    */
+    var bondShadows = options.bondShadows !== false;
+
+    /*
       Main bond thickness.
       Increase this for very bold ORTEP bonds.
     */
@@ -3852,7 +3858,7 @@
         Because near objects are drawn later, a foreground bond's white halo
         cuts through geometry behind it.
       */
-      var bondShadowSvg = bondDashed
+      var bondShadowSvg = (!bondShadows || bondDashed)
         ? ""
         : makeLineSvg(
             (pa.x + bondShadowDx).toFixed(2),

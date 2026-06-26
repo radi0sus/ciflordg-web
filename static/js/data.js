@@ -90,6 +90,7 @@
           labelHydrogen: false,
           showBackfaces: false,
           twoColoredBonds: true,
+          bondShadows: true,
 
           showHydrogen: false,
           addMissingHydrogenAtoms: true
