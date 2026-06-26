@@ -3840,7 +3840,7 @@
       */
       var coreGap = bondAtomGap;
       var haloGap = bondHaloWidth > 0
-        ? Math.max(0, bondHaloWidth * 0.45)
+        ? Math.max(0, bondHaloWidth * 0.15)
         : coreGap;
       var shadowGap = coreGap;
 
