@@ -38,6 +38,7 @@ This web version provides the useful analysis, reporting, and visualisation part
 - ORTEP-style SVG structure plotting from CIF atom, bond, symmetry, and ADP data
 - Interactive ORTEP view rotation and manual atom/bond display overrides
 - ORTEP export as SVG or PNG
+- ORTEP copy as PNG
 - Export as Markdown, plain text, CSV, and RTF
 - Copy as formatted preview, Markdown, or plain text
 
@@ -111,13 +112,16 @@ The current version contains a working browser-only implementation with:
   - interactive mouse rotation
   - double-click view reset
   - probability-level selection
-  - drawing/style scale controls
-  - label controls
+  - fixed or automatic drawing scale
+  - separate bond-width and ORTEP-line-width controls
+  - label-size controls
+  - bond display options including two-colored bonds, bond shadows, and zero bond gap
   - optional hydrogen display
   - optional addition of coordinate hydrogen atoms missing from CIF geometry bonds
   - manual atom and bond visibility overrides
-  - SVG download
+  - PNG copy to clipboard
   - PNG download
+  - SVG download
 - Export/download:
   - RTF
   - Markdown
@@ -127,6 +131,7 @@ The current version contains a working browser-only implementation with:
   - formatted preview
   - Markdown
   - plain text
+  - ORTEP PNG image
 
 ## CIF parser support
 
@@ -244,17 +249,23 @@ The ORTEP tab supports:
 - use of anisotropic displacement parameters where available
 - fallback atom drawing for atoms without anisotropic displacement parameters
 - probability-level selection for displacement ellipsoids
-- interactive mouse rotation
-- double-click view reset
-- label display controls
+- automatic or fixed drawing scale
+- separate control of bond width and ORTEP ellipsoid line width
+- label display and label-size controls
 - optional carbon and hydrogen labels
 - optional hydrogen atom display
 - optional addition of coordinate hydrogen atoms missing from CIF geometry bonds
+- two-colored bond drawing
+- optional bond shadows
+- zero bond gap mode for a cleaner direct bond-to-ellipsoid appearance
 - manual atom visibility overrides
 - manual atom label overrides
 - manual bond visibility overrides
-- SVG download
+- interactive mouse rotation
+- double-click view reset
+- PNG copy to clipboard
 - PNG download
+- SVG download
 
 The ORTEP plot is independent of the generated crystallographic report. It is not included in the report preview, Markdown export, plain-text export, CSV export, or RTF export.
 
@@ -264,7 +275,8 @@ Limitations:
 - If CIF geometry bonds are incomplete, the displayed bonded fragment may be incomplete.
 - Extended or polymeric structures may be truncated by the expansion limits.
 - The ADP-to-ellipsoid rendering is intended as a practical browser-based visualisation and should be validated against established crystallographic drawing programs for critical publication use.
-- PNG export is generated in the browser from the SVG representation.
+- PNG export and PNG clipboard copy are generated in the browser from the SVG representation.
+- PNG clipboard copy depends on browser support for image clipboard writing and may require a secure browser context.
 - ORTEP plots are not written back to CIF files.
 
 ## Interatomic distances
@@ -464,10 +476,11 @@ Therefore:
 - formatted preview copy is supported
 - Markdown copy is supported
 - plain text copy is supported
+- ORTEP PNG image copy is supported where the browser allows image clipboard writing
 - RTF download is supported
 - direct RTF clipboard copy is not provided
 
-For word-processor workflows, use the RTF download where possible.
+For word-processor workflows, use the RTF download where possible. ORTEP plots can be exported or copied separately as PNG, or exported separately as SVG.
 
 ## Known limitations
 
@@ -480,7 +493,8 @@ For word-processor workflows, use the RTF download where possible.
 - CShM calculations are available for coordination numbers 2–6.
 - Geometry-parameter results are not currently included in CSV export.
 - ORTEP plotting depends on CIF geometry bonds and available ADP data.
-- ORTEP plots are exported separately as SVG or PNG and are not part of the generated text/RTF/Markdown/CSV report exports.
+- ORTEP plots are exported or copied separately as SVG or PNG and are not part of the generated text/RTF/Markdown/CSV report exports.
+- ORTEP PNG clipboard copy depends on browser support and security context.
 - Manual Disorder Helper edits are not written back to CIF files.
 - No CIF editing or rewriting is provided.
 - No LaTeX, PDF, DOCX export is provided directly.
