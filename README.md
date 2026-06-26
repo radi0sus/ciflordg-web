@@ -1,6 +1,6 @@
 # CIFLord Web
 
-Serverless browser application for CIF preview, crystallographic report generation, average calculations, geometry-parameter analysis, interatomic distance analysis, and disorder-model summarisation.
+Serverless browser application for CIF preview, crystallographic report generation, average calculations, geometry-parameter analysis, interatomic distance analysis, disorder-model summarisation, and ORTEP-style SVG structure plotting.
 
 ## Start
 
@@ -12,7 +12,7 @@ The application runs fully client-side. CIF files are read locally in the browse
 
 ## Scope
 
-This web version provides the useful analysis and reporting parts of the original desktop application:
+This web version provides the useful analysis, reporting, and visualisation parts of the original desktop application:
 
 - CIF loading by file picker or drag and drop
 - CIF parsing of data items and `loop_` blocks
@@ -35,6 +35,9 @@ This web version provides the useful analysis and reporting parts of the origina
 - Disorder Helper for summarising crystallographic disorder information
 - Editable moiety and comment fields for disorder groups
 - Optional inclusion of the disorder table in the generated report
+- ORTEP-style SVG structure plotting from CIF atom, bond, symmetry, and ADP data
+- Interactive ORTEP view rotation and manual atom/bond display overrides
+- ORTEP export as SVG or PNG
 - Export as Markdown, plain text, CSV, and RTF
 - Copy as formatted preview, Markdown, or plain text
 
@@ -45,7 +48,7 @@ The following features are intentionally not part of this version:
 - Compare tab
 - LaTeX export
 - PDF export
-- ORTEP/structure plot
+- DOCX export
 
 LaTeX or PDF output can later be generated from Markdown using tools such as Pandoc.
 
@@ -98,6 +101,23 @@ The current version contains a working browser-only implementation with:
   - editable moiety field with suggestion list
   - editable comment field with automatic comment suggestions
   - optional inclusion of the disorder table in the generated report
+- ORTEP tab:
+  - lazy generation when the ORTEP tab is opened
+  - bonded-fragment/component selection
+  - ORTEP-style SVG displacement ellipsoid plot
+  - use of anisotropic displacement parameters where available
+  - fallback atom drawing where ADPs are unavailable
+  - symmetry-generated atoms from CIF geometry-bond symmetry data
+  - interactive mouse rotation
+  - double-click view reset
+  - probability-level selection
+  - drawing/style scale controls
+  - label controls
+  - optional hydrogen display
+  - optional addition of coordinate hydrogen atoms missing from CIF geometry bonds
+  - manual atom and bond visibility overrides
+  - SVG download
+  - PNG download
 - Export/download:
   - RTF
   - Markdown
@@ -110,7 +130,7 @@ The current version contains a working browser-only implementation with:
 
 ## CIF parser support
 
-The parser currently supports the CIF features needed for the reporting workflow:
+The parser currently supports the CIF features needed for the reporting and ORTEP workflows:
 
 - `data_` blocks
 - simple data items
@@ -119,6 +139,7 @@ The parser currently supports the CIF features needed for the reporting workflow
 - inline comments outside quoted strings
 - `loop_` blocks
 - common atom-site loops
+- common atom-site anisotropic displacement parameter loops
 - common geometry bond loops
 - common geometry angle loops
 - common symmetry operation loops
@@ -148,10 +169,18 @@ The application uses, where available, data such as:
 - `_atom_site_fract_x`
 - `_atom_site_fract_y`
 - `_atom_site_fract_z`
+- `_atom_site_U_iso_or_equiv`
 - `_atom_site_adp_type`
 - `_atom_site_occupancy`
 - `_atom_site_disorder_assembly`
 - `_atom_site_disorder_group`
+- `_atom_site_aniso_label`
+- `_atom_site_aniso_U_11`
+- `_atom_site_aniso_U_22`
+- `_atom_site_aniso_U_33`
+- `_atom_site_aniso_U_12`
+- `_atom_site_aniso_U_13`
+- `_atom_site_aniso_U_23`
 - `_geom_bond_atom_site_label_1`
 - `_geom_bond_atom_site_label_2`
 - `_geom_bond_distance`
@@ -200,6 +229,43 @@ Limitations:
 - Disorder and alternative positions may require manual ligand selection.
 - CShM values are only available for coordination numbers 2–6.
 - Geometry parameters are not currently included in the CSV export.
+
+## ORTEP SVG plot
+
+The ORTEP tab generates an ORTEP-style SVG structure plot from the loaded CIF.
+
+The ORTEP model is generated lazily when the ORTEP tab is opened. Loading a CIF file does not automatically create an ORTEP plot while the user is working in other tabs.
+
+The ORTEP tab supports:
+
+- bonded-fragment/component selection
+- use of CIF geometry bonds
+- use of symmetry information from CIF geometry-bond symmetry fields
+- use of anisotropic displacement parameters where available
+- fallback atom drawing for atoms without anisotropic displacement parameters
+- probability-level selection for displacement ellipsoids
+- interactive mouse rotation
+- double-click view reset
+- label display controls
+- optional carbon and hydrogen labels
+- optional hydrogen atom display
+- optional addition of coordinate hydrogen atoms missing from CIF geometry bonds
+- manual atom visibility overrides
+- manual atom label overrides
+- manual bond visibility overrides
+- SVG download
+- PNG download
+
+The ORTEP plot is independent of the generated crystallographic report. It is not included in the report preview, Markdown export, plain-text export, CSV export, or RTF export.
+
+Limitations:
+
+- The plot depends on atom coordinates, unit-cell parameters, CIF geometry bonds, symmetry operations, and ADP data present in the CIF.
+- If CIF geometry bonds are incomplete, the displayed bonded fragment may be incomplete.
+- Extended or polymeric structures may be truncated by the expansion limits.
+- The ADP-to-ellipsoid rendering is intended as a practical browser-based visualisation and should be validated against established crystallographic drawing programs for critical publication use.
+- PNG export is generated in the browser from the SVG representation.
+- ORTEP plots are not written back to CIF files.
 
 ## Interatomic distances
 
@@ -325,6 +391,8 @@ It preserves basic formatting such as:
 - geometry-parameter tables
 - disorder tables
 
+ORTEP plots are not included in RTF export.
+
 ### Markdown
 
 Markdown export is intended for readable text-based reports and further conversion using tools such as Pandoc.
@@ -333,6 +401,8 @@ Included geometry-parameter results are exported as a Markdown table.
 
 Included disorder rows are exported as a Markdown table.
 
+ORTEP plots are not included in Markdown export.
+
 ### Plain text
 
 Plain text export provides a simple fixed-width readable report.
@@ -340,6 +410,8 @@ Plain text export provides a simple fixed-width readable report.
 Included geometry-parameter results are exported as an aligned plain-text table.
 
 Included disorder rows are exported as an aligned plain-text table.
+
+ORTEP plots are not included in plain-text export.
 
 ### CSV
 
@@ -375,7 +447,7 @@ For disorder rows:
 
 Typographic dashes are converted to ASCII hyphens in the CSV output.
 
-Geometry-parameter results are not currently included in the CSV export.
+Geometry-parameter results and ORTEP plots are not currently included in the CSV export.
 
 ## Notes on copy/paste
 
@@ -407,7 +479,8 @@ For word-processor workflows, use the RTF download where possible.
 - Geometry-parameter calculations depend on the CIF geometry bond table.
 - CShM calculations are available for coordination numbers 2–6.
 - Geometry-parameter results are not currently included in CSV export.
+- ORTEP plotting depends on CIF geometry bonds and available ADP data.
+- ORTEP plots are exported separately as SVG or PNG and are not part of the generated text/RTF/Markdown/CSV report exports.
 - Manual Disorder Helper edits are not written back to CIF files.
-- No structure drawing or ORTEP plot is currently included.
 - No CIF editing or rewriting is provided.
-- No LaTeX or PDF export is provided directly.
+- No LaTeX, PDF, DOCX export is provided directly.
