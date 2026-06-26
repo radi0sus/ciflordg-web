@@ -1111,15 +1111,20 @@
 
     writeStateToControls(state);
 
-    var svgButton = $("ortep-btn-download-svg");
+    var copyPngButton = $("ortep-btn-copy-png");
     var pngButton = $("ortep-btn-download-png");
+    var svgButton = $("ortep-btn-download-svg");
 
-    if (svgButton) {
-      svgButton.disabled = false;
+    if (copyPngButton) {
+      copyPngButton.disabled = false;
     }
 
     if (pngButton) {
       pngButton.disabled = false;
+    }
+
+    if (svgButton) {
+      svgButton.disabled = false;
     }
   }
 
@@ -1232,15 +1237,20 @@
         box.innerHTML = "";
       }
 
-      var svgButton = $("ortep-btn-download-svg");
+      var copyPngButton = $("ortep-btn-copy-png");
       var pngButton = $("ortep-btn-download-png");
+      var svgButton = $("ortep-btn-download-svg");
 
-      if (svgButton) {
-        svgButton.disabled = true;
+      if (copyPngButton) {
+        copyPngButton.disabled = true;
       }
 
       if (pngButton) {
         pngButton.disabled = true;
+      }
+
+      if (svgButton) {
+        svgButton.disabled = true;
       }
 
       return;
@@ -1264,6 +1274,23 @@
       );
     } else {
       setText("ortep-status", "Open this tab to generate the ORTEP view.", "hint");
+    }
+
+    var copyPngButton = $("ortep-btn-copy-png");
+    var pngButton = $("ortep-btn-download-png");
+    var svgButton = $("ortep-btn-download-svg");
+    var enabled = !!ortep.liveSvg;
+
+    if (copyPngButton) {
+      copyPngButton.disabled = !enabled;
+    }
+
+    if (pngButton) {
+      pngButton.disabled = !enabled;
+    }
+
+    if (svgButton) {
+      svgButton.disabled = !enabled;
     }
   }
 
@@ -1370,9 +1397,14 @@
     return base + "_ortep";
   }
 
-  function downloadPngFromSvg(svgText, filename, dpi) {
+  function svgToPngBlob(svgText, dpi, onSuccess, onError) {
     dpi = dpi || 300;
 
+    /*
+      Browser canvas PNG export does not reliably embed DPI metadata.
+      We therefore export a 300-dpi-equivalent pixel size using the
+      CSS pixel reference of 96 dpi.
+    */
     var scale = dpi / 96;
     var size = svgSize(svgText);
 
@@ -1400,19 +1432,112 @@
 
       canvas.toBlob(function (blob) {
         if (!blob) {
+          if (typeof onError === "function") {
+            onError(new Error("PNG export failed."));
+          }
+
           return;
         }
 
-        downloadBlob(filename, blob);
+        if (typeof onSuccess === "function") {
+          onSuccess(blob);
+        }
       }, "image/png");
     };
 
     img.onerror = function () {
       URL.revokeObjectURL(url);
-      alert("PNG export failed.");
+
+      if (typeof onError === "function") {
+        onError(new Error("PNG export failed."));
+      }
     };
 
     img.src = url;
+  }
+
+  function svgToPngBlobPromise(svgText, dpi) {
+    return new Promise(function (resolve, reject) {
+      svgToPngBlob(
+        svgText,
+        dpi || 300,
+        resolve,
+        reject
+      );
+    });
+  }
+
+  function downloadPngFromSvg(svgText, filename, dpi) {
+    svgToPngBlob(
+      svgText,
+      dpi || 300,
+      function (blob) {
+        downloadBlob(filename, blob);
+      },
+      function () {
+        alert("PNG export failed.");
+      }
+    );
+  }
+
+  function flashButtonText(button, text) {
+    if (!button) {
+      return;
+    }
+
+    var oldText = button.textContent;
+
+    button.textContent = text;
+    button.disabled = true;
+
+    setTimeout(function () {
+      button.textContent = oldText;
+      button.disabled = false;
+    }, 1400);
+  }
+
+  function copyPngFromSvg(svgText, button) {
+    if (!navigator.clipboard || !navigator.clipboard.write || !window.ClipboardItem) {
+      alert("Copy PNG is not supported by this browser or context.");
+      return;
+    }
+
+    if (window.isSecureContext === false) {
+      alert("Copy PNG requires a secure browser context such as HTTPS or localhost.");
+      return;
+    }
+
+    try {
+      /*
+        Important:
+        navigator.clipboard.write() must be called directly from the button
+        click/user gesture. Therefore the PNG Blob is provided as a Promise
+        to ClipboardItem instead of waiting for canvas.toBlob first.
+      */
+      var pngBlobPromise = svgToPngBlobPromise(svgText, 300);
+
+      var item = new ClipboardItem({
+        "image/png": pngBlobPromise
+      });
+
+      navigator.clipboard.write([item]).then(function () {
+        flashButtonText(button, "Copied");
+      }).catch(function (error) {
+        console.error("Copy PNG failed:", error);
+        alert(
+          "Copy PNG failed" +
+          (error && error.name ? ": " + error.name : "") +
+          (error && error.message ? " — " + error.message : ".")
+        );
+      });
+    } catch (error) {
+      console.error("Copy PNG failed:", error);
+      alert(
+        "Copy PNG failed" +
+        (error && error.name ? ": " + error.name : "") +
+        (error && error.message ? " — " + error.message : ".")
+      );
+    }
   }
 
   function bindControls(state) {
@@ -1748,22 +1873,19 @@
   }
 
   function bindDownloads(state) {
-    var svgButton = $("ortep-btn-download-svg");
+    var copyPngButton = $("ortep-btn-copy-png");
     var pngButton = $("ortep-btn-download-png");
+    var svgButton = $("ortep-btn-download-svg");
 
-    if (svgButton) {
-      svgButton.addEventListener("click", function () {
+    if (copyPngButton) {
+      copyPngButton.addEventListener("click", function () {
         var ortep = ensureState(state);
 
         if (!ortep.liveSvg) {
           return;
         }
 
-        var blob = new Blob([ortep.liveSvg], {
-          type: "image/svg+xml;charset=utf-8"
-        });
-
-        downloadBlob(currentExportBaseName(state) + ".svg", blob);
+        copyPngFromSvg(ortep.liveSvg, copyPngButton);
       });
     }
 
@@ -1780,6 +1902,22 @@
           currentExportBaseName(state) + "_300dpi.png",
           300
         );
+      });
+    }
+
+    if (svgButton) {
+      svgButton.addEventListener("click", function () {
+        var ortep = ensureState(state);
+
+        if (!ortep.liveSvg) {
+          return;
+        }
+
+        var blob = new Blob([ortep.liveSvg], {
+          type: "image/svg+xml;charset=utf-8"
+        });
+
+        downloadBlob(currentExportBaseName(state) + ".svg", blob);
       });
     }
   }
