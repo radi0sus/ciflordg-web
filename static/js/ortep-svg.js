@@ -2364,6 +2364,12 @@
     var bondShadows = options.bondShadows !== false;
 
     /*
+      Zero bond gap removes the white bond halo and clips the bond core
+      exactly at the atom/ellipsoid boundary.
+    */
+    var zeroBondGap = options.zeroBondGap === true;
+
+    /*
       Main bond thickness.
       Increase this for very bold ORTEP bonds.
     */
@@ -2652,9 +2658,37 @@
     var finalStyleScale = autoStyleScale * userStyleScale;
 
     bondWidth *= finalStyleScale;
-    bondHaloWidth *= finalStyleScale;
+
+    /*
+      The white bond halo should scale with the overall style, but less
+      strongly than the actual bond core. Otherwise large styleScale values
+      create overly wide white cutouts around bonds.
+    */
+    bondHaloWidth *= Math.pow(finalStyleScale, 0.55);
+
     bondShadowWidth *= finalStyleScale;
-    bondAtomGap *= finalStyleScale;
+
+    /*
+      bondAtomGap is a screen-space clipping parameter, not a style
+      parameter. It should not grow strongly with styleScale.
+
+      Zero bond gap:
+      - disables the white bond halo
+      - clips the bond core exactly at the atom/ellipsoid boundary
+
+      Otherwise:
+      - with bond shadows enabled, keep only a tiny positive gap
+      - with bond shadows disabled, pull the bond slightly under the filled
+        ellipsoid to avoid visible white gaps
+    */
+    if (zeroBondGap) {
+      bondAtomGap = 0;
+      bondHaloWidth = 0;
+    } else if (bondShadows) {
+      bondAtomGap = Math.max(0, Math.min(bondAtomGap, 0.8));
+    } else {
+      bondAtomGap = -Math.max(0.6, bondWidth * 0.35);
+    }
 
     /*
       Labels are controlled independently by labelFontSize.
@@ -3016,7 +3050,7 @@
       };
     }
 
-    function clipBondEndpointToAtom(atom, centerPoint, otherPoint) {
+    function clipBondEndpointToAtomWithGap(atom, centerPoint, otherPoint, gapPx) {
       var axes = getAxesForAtom(atom);
 
       /*
@@ -3027,7 +3061,7 @@
           centerPoint,
           otherPoint,
           projectedEllipsoidHull(atom, axes),
-          bondAtomGap
+          gapPx
         );
       }
 
@@ -3044,7 +3078,7 @@
         return centerPoint;
       }
 
-      var t = (r + bondAtomGap) / d;
+      var t = (r + gapPx) / d;
 
       if (t > 0.45) {
         t = 0.45;
@@ -3055,6 +3089,15 @@
         y: centerPoint.y + dy * t,
         z: centerPoint.z
       };
+    }
+
+    function clipBondEndpointToAtom(atom, centerPoint, otherPoint) {
+      return clipBondEndpointToAtomWithGap(
+        atom,
+        centerPoint,
+        otherPoint,
+        bondAtomGap
+      );
     }
 
     var atomByKey = {};
@@ -3778,11 +3821,50 @@
         Clip bond endpoints to the visible atom/ellipsoid boundaries.
         Bonds no longer go into the filled ellipsoids.
       */
-      var pa = clipBondEndpointToAtom(a, paCenter, pbCenter);
-      var pb = clipBondEndpointToAtom(b, pbCenter, paCenter);
+      var paCenter = screenPoint(a.cart);
+      var pbCenter = screenPoint(b.cart);
 
-      var clippedDx = pb.x - pa.x;
-      var clippedDy = pb.y - pa.y;
+      /*
+        Bond clipping is now separated for the different visual layers.
+
+        Core:
+          may run up to / slightly under the filled ellipsoid.
+
+        Halo:
+          stops earlier, so it remains mainly to the left/right of the bond
+          and does not form a white cap inside the ellipsoid.
+
+        Shadow:
+          follows the core endpoint logic, but is still suppressed for dashed
+          bonds and when bond shadows are disabled.
+      */
+      var coreGap = bondAtomGap;
+      var haloGap = bondHaloWidth > 0
+        ? Math.max(0, bondHaloWidth * 0.45)
+        : coreGap;
+      var shadowGap = coreGap;
+
+      if (zeroBondGap) {
+        coreGap = 0;
+        haloGap = 0;
+        shadowGap = 0;
+      }
+
+      var paCore = clipBondEndpointToAtomWithGap(a, paCenter, pbCenter, coreGap);
+      var pbCore = clipBondEndpointToAtomWithGap(b, pbCenter, paCenter, coreGap);
+
+      var paHalo = bondHaloWidth > 0
+        ? clipBondEndpointToAtomWithGap(a, paCenter, pbCenter, haloGap)
+        : paCore;
+      var pbHalo = bondHaloWidth > 0
+        ? clipBondEndpointToAtomWithGap(b, pbCenter, paCenter, haloGap)
+        : pbCore;
+
+      var paShadow = clipBondEndpointToAtomWithGap(a, paCenter, pbCenter, shadowGap);
+      var pbShadow = clipBondEndpointToAtomWithGap(b, pbCenter, paCenter, shadowGap);
+
+      var clippedDx = pbCore.x - paCore.x;
+      var clippedDy = pbCore.y - paCore.y;
 
       /*
         If two atoms overlap heavily, avoid drawing tiny artefact bonds.
@@ -3791,10 +3873,10 @@
         return;
       }
 
-      var x1 = pa.x.toFixed(2);
-      var y1 = pa.y.toFixed(2);
-      var x2 = pb.x.toFixed(2);
-      var y2 = pb.y.toFixed(2);
+      var x1 = paCore.x.toFixed(2);
+      var y1 = paCore.y.toFixed(2);
+      var x2 = pbCore.x.toFixed(2);
+      var y2 = pbCore.y.toFixed(2);
 
       hitItems.push(
         makeBondHitSvg(bond, x1, y1, x2, y2)
@@ -3803,8 +3885,8 @@
       var coreBondSvg = "";
 
       if (twoColoredBonds) {
-        var midX = ((pa.x + pb.x) / 2).toFixed(2);
-        var midY = ((pa.y + pb.y) / 2).toFixed(2);
+        var midX = ((paCore.x + pbCore.x) / 2).toFixed(2);
+        var midY = ((paCore.y + pbCore.y) / 2).toFixed(2);
 
         var colorA = bondCoreColorForAtom(a);
         var colorB = bondCoreColorForAtom(b);
@@ -3849,51 +3931,54 @@
           );
       }
 
+      var haloBondSvg = "";
+
+      if (bondHaloWidth > 0) {
+        var haloDx = pbHalo.x - paHalo.x;
+        var haloDy = pbHalo.y - paHalo.y;
+
+        if (Math.sqrt(haloDx * haloDx + haloDy * haloDy) >= 1.0) {
+          haloBondSvg =
+            makeLineSvg(
+              paHalo.x.toFixed(2),
+              paHalo.y.toFixed(2),
+              pbHalo.x.toFixed(2),
+              pbHalo.y.toFixed(2),
+              bondHaloColor,
+              bondHaloWidth,
+              "butt",
+              bondDashArray
+            );
+        }
+      }
+
       /*
         Bond drawing order:
-        1. white halo, wide
-        2. grey slightly offset shadow
-        3. black/two-colored core bond
-
-        Because near objects are drawn later, a foreground bond's white halo
-        cuts through geometry behind it.
-      */
-      var bondShadowSvg = (!bondShadows || bondDashed)
-        ? ""
-        : makeLineSvg(
-            (pa.x + bondShadowDx).toFixed(2),
-            (pa.y + bondShadowDy).toFixed(2),
-            (pb.x + bondShadowDx).toFixed(2),
-            (pb.y + bondShadowDy).toFixed(2),
-            bondShadowColor,
-            bondShadowWidth,
-            bondLineCap,
-            ""
-          );
-
-      /*
-        Bond drawing order:
-        1. white halo, wide
+        1. white halo, wide, clipped shorter than the core bond
         2. grey slightly offset shadow for solid bonds only
         3. black/two-colored core bond
 
         Dashed bonds intentionally skip the grey shadow because the offset
         shadow can fall into the dash gaps and make the bond look irregular.
       */
+      var bondShadowSvg = (!bondShadows || bondDashed)
+        ? ""
+        : makeLineSvg(
+            (paShadow.x + bondShadowDx).toFixed(2),
+            (paShadow.y + bondShadowDy).toFixed(2),
+            (pbShadow.x + bondShadowDx).toFixed(2),
+            (pbShadow.y + bondShadowDy).toFixed(2),
+            bondShadowColor,
+            bondShadowWidth,
+            bondLineCap,
+            ""
+          );
+
       drawItems.push({
         layer: 10,
         z: (paCenter.z + pbCenter.z) / 2,
         svg:
-          makeLineSvg(
-            x1,
-            y1,
-            x2,
-            y2,
-            bondHaloColor,
-            bondHaloWidth,
-            bondLineCap,
-            bondDashArray
-          ) +
+          haloBondSvg +
 
           bondShadowSvg +
 

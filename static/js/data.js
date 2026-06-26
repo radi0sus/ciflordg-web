@@ -91,6 +91,7 @@
           showBackfaces: false,
           twoColoredBonds: true,
           bondShadows: true,
+          zeroBondGap: false,
 
           showHydrogen: false,
           addMissingHydrogenAtoms: true

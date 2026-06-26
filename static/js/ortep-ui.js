@@ -131,6 +131,10 @@
       ortep.options.bondShadows = true;
     }
 
+    if (typeof ortep.options.zeroBondGap !== "boolean") {
+      ortep.options.zeroBondGap = false;
+    }
+
     if (typeof ortep.options.showHydrogen !== "boolean") {
       ortep.options.showHydrogen = false;
     }
@@ -175,6 +179,7 @@
         showBackfaces: false,
         twoColoredBonds: true,
         bondShadows: true,
+        zeroBondGap: false,
 
         showHydrogen: false,
         addMissingHydrogenAtoms: true
@@ -572,6 +577,7 @@
     setChecked("ortep-opt-two-colored-bonds", options.twoColoredBonds);
     setChecked("ortep-opt-show-h", options.showHydrogen);
     setChecked("ortep-opt-bond-shadows", options.bondShadows);
+    setChecked("ortep-opt-zero-bond-gap", options.zeroBondGap);
     setChecked("ortep-opt-add-missing-h", options.addMissingHydrogenAtoms);
 
     var projectionScale = $("ortep-input-projection-scale");
@@ -624,6 +630,9 @@
     options.bondShadows = $("ortep-opt-bond-shadows")
       ? $("ortep-opt-bond-shadows").checked
       : true;
+    options.zeroBondGap = $("ortep-opt-zero-bond-gap")
+      ? $("ortep-opt-zero-bond-gap").checked
+      : false;
     options.showHydrogen = $("ortep-opt-show-h")
       ? $("ortep-opt-show-h").checked
       : false;
@@ -1095,6 +1104,7 @@
       showBackfaces: ortep.options.showBackfaces,
       twoColoredBonds: ortep.options.twoColoredBonds,
       bondShadows: ortep.options.bondShadows,
+      zeroBondGap: ortep.options.zeroBondGap,
 
       viewState: ortep.viewState,
       displayOptions: ortep.displayOptions
@@ -1572,6 +1582,7 @@
       "ortep-opt-show-backfaces",
       "ortep-opt-two-colored-bonds",
       "ortep-opt-bond-shadows",
+      "ortep-opt-zero-bond-gap",
       "ortep-opt-show-h",
       "ortep-opt-label-c",
       "ortep-opt-label-h"
