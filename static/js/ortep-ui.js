@@ -75,6 +75,10 @@
       ortep.addedHydrogenBonds = [];
     }
 
+    if (typeof ortep.figureSvg !== "string") {
+      ortep.figureSvg = "";
+    }
+
     if (typeof ortep.initialized !== "boolean") {
       ortep.initialized = false;
     }
@@ -164,6 +168,7 @@
       viewState: null,
 
       liveSvg: "",
+      figureSvg: "",
       lastFitScale: null,
       addedHydrogenBonds: [],
 
@@ -1545,9 +1550,19 @@
 
     writeStateToControls(state);
 
+    var useAsFigureButton = $("ortep-btn-use-as-figure");
+    var removeFigureButton = $("ortep-btn-remove-figure");
     var copyPngButton = $("ortep-btn-copy-png");
     var pngButton = $("ortep-btn-download-png");
     var svgButton = $("ortep-btn-download-svg");
+
+    if (useAsFigureButton) {
+      useAsFigureButton.disabled = !ortep.liveSvg;
+    }
+
+    if (removeFigureButton) {
+      removeFigureButton.disabled = !ortep.figureSvg;
+    }
 
     if (copyPngButton) {
       copyPngButton.disabled = false;
@@ -1673,9 +1688,19 @@
         box.innerHTML = "";
       }
 
+      var useAsFigureButton = $("ortep-btn-use-as-figure");
+      var removeFigureButton = $("ortep-btn-remove-figure");
       var copyPngButton = $("ortep-btn-copy-png");
       var pngButton = $("ortep-btn-download-png");
       var svgButton = $("ortep-btn-download-svg");
+
+      if (useAsFigureButton) {
+        useAsFigureButton.disabled = true;
+      }
+
+      if (removeFigureButton) {
+        removeFigureButton.disabled = true;
+      }
 
       if (copyPngButton) {
         copyPngButton.disabled = true;
@@ -1712,10 +1737,20 @@
       setText("ortep-status", "Open this tab to generate the ORTEP view.", "hint");
     }
 
+    var useAsFigureButton = $("ortep-btn-use-as-figure");
+    var removeFigureButton = $("ortep-btn-remove-figure");
     var copyPngButton = $("ortep-btn-copy-png");
     var pngButton = $("ortep-btn-download-png");
     var svgButton = $("ortep-btn-download-svg");
     var enabled = !!ortep.liveSvg;
+
+    if (useAsFigureButton) {
+      useAsFigureButton.disabled = !enabled;
+    }
+
+    if (removeFigureButton) {
+      removeFigureButton.disabled = !ortep.figureSvg;
+    }
 
     if (copyPngButton) {
       copyPngButton.disabled = !enabled;
@@ -1930,6 +1965,59 @@
       button.textContent = oldText;
       button.disabled = false;
     }, 1400);
+  }
+
+  function cleanSvgForFigure(svgText) {
+    var doc = new DOMParser().parseFromString(svgText, "image/svg+xml");
+    var svg = doc.documentElement;
+
+    if (!svg || String(svg.nodeName).toLowerCase() !== "svg") {
+      return svgText;
+    }
+
+    Array.prototype.slice.call(svg.querySelectorAll(".ortep-hit-layer")).forEach(function (node) {
+      if (node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    });
+
+    Array.prototype.slice.call(svg.querySelectorAll("[data-atom-key]")).forEach(function (node) {
+      node.removeAttribute("data-atom-key");
+    });
+
+    Array.prototype.slice.call(svg.querySelectorAll("[data-bond-key]")).forEach(function (node) {
+      node.removeAttribute("data-bond-key");
+    });
+
+    Array.prototype.slice.call(svg.querySelectorAll("[data-hbond-key]")).forEach(function (node) {
+      node.removeAttribute("data-hbond-key");
+    });
+
+    Array.prototype.slice.call(svg.querySelectorAll("[pointer-events]")).forEach(function (node) {
+      node.removeAttribute("pointer-events");
+    });
+
+    return new XMLSerializer().serializeToString(svg);
+  }
+
+  function refreshPreviewAfterFigureChange(state) {
+    if (CIFLord.UI && typeof CIFLord.UI.renderPreview === "function") {
+      CIFLord.UI.renderPreview(state);
+    }
+  }
+
+  function updateFigureButtons(state) {
+    var ortep = ensureState(state);
+    var useAsFigureButton = $("ortep-btn-use-as-figure");
+    var removeFigureButton = $("ortep-btn-remove-figure");
+
+    if (useAsFigureButton) {
+      useAsFigureButton.disabled = !ortep.liveSvg;
+    }
+
+    if (removeFigureButton) {
+      removeFigureButton.disabled = !ortep.figureSvg;
+    }
   }
 
   function copyPngFromSvg(svgText, button) {
@@ -2348,9 +2436,39 @@
   }
 
   function bindDownloads(state) {
+    var useAsFigureButton = $("ortep-btn-use-as-figure");
+    var removeFigureButton = $("ortep-btn-remove-figure");
     var copyPngButton = $("ortep-btn-copy-png");
     var pngButton = $("ortep-btn-download-png");
     var svgButton = $("ortep-btn-download-svg");
+
+    if (useAsFigureButton) {
+      useAsFigureButton.addEventListener("click", function () {
+        var ortep = ensureState(state);
+
+        if (!ortep.liveSvg) {
+          return;
+        }
+
+        ortep.figureSvg = cleanSvgForFigure(ortep.liveSvg);
+
+        updateFigureButtons(state);
+        refreshPreviewAfterFigureChange(state);
+        flashButtonText(useAsFigureButton, "Used");
+      });
+    }
+
+    if (removeFigureButton) {
+      removeFigureButton.addEventListener("click", function () {
+        var ortep = ensureState(state);
+
+        ortep.figureSvg = "";
+
+        updateFigureButtons(state);
+        refreshPreviewAfterFigureChange(state);
+        flashButtonText(removeFigureButton, "Removed");
+      });
+    }
 
     if (copyPngButton) {
       copyPngButton.addEventListener("click", function () {

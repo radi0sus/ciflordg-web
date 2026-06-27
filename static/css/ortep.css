@@ -217,14 +217,46 @@
 }
 
 /* -------------------------------------------------
+   ORTEP figure in report preview
+   ------------------------------------------------- */
+
+.ortep-preview-figure {
+  margin: 1.25rem 0 1rem;
+  padding: 0.75rem;
+
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+.ortep-preview-figure-svg {
+  max-width: 100%;
+  margin: 0 auto;
+
+  background: #ffffff;
+}
+
+.ortep-preview-figure-svg svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+
+  background: #ffffff;
+}
+
+/* -------------------------------------------------
    ORTEP toolbars
    ------------------------------------------------- */
 
+.ortep-figure-toolbar,
 .ortep-download-toolbar,
 .ortep-override-toolbar {
   margin-bottom: 0;
 }
 
+.ortep-figure-toolbar button,
 .ortep-download-toolbar button,
 .ortep-override-toolbar button {
   flex: 1 1 auto;

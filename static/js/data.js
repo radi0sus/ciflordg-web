@@ -68,6 +68,7 @@
         viewState: null,
 
         liveSvg: "",
+        figureSvg: "",
         lastFitScale: null,
         addedHydrogenBonds: [],
 

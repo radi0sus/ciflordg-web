@@ -65,6 +65,7 @@
     [
       "btn-copy-md",
       "btn-copy-text",
+      "btn-download-html",
       "btn-download-rtf",
       "btn-download-md",
       "btn-download-text",
@@ -1498,6 +1499,10 @@
       return CIFLord.Reports.makeCSV(state);
     }
 
+    function html() {
+      return CIFLord.Reports.makeStandaloneHTML(state);
+    }
+
     function rtf() {
       return CIFLord.Reports.makeRTF(state);
     }
@@ -1520,6 +1525,11 @@
 
       return true;
     }
+
+    bindClick("btn-download-html", function () {
+      if (!requireCifLoaded()) return;
+      download(baseName() + ".html", html(), "text/html;charset=utf-8");
+    });
 
     bindClick("btn-download-md", function () {
       if (!requireCifLoaded()) return;
@@ -1559,31 +1569,47 @@
 
     bindClick("btn-copy-formatted", function () {
       if (!requireCifLoaded()) return;
-    
+
       var selectionTab = document.querySelector(".tab[data-tab='selection']");
-    
+
       if (selectionTab && !selectionTab.classList.contains("active")) {
         showToast("Open Selection & Preview to copy the formatted report", "warning");
         return;
       }
-    
+
       var preview = $("report-preview");
-    
+
       if (!preview) {
         showToast("Report preview not available");
         return;
       }
-    
+
+      var copyNode = preview.cloneNode(true);
+
+      Array.prototype.slice.call(copyNode.querySelectorAll(".ortep-preview-figure")).forEach(function (node) {
+        if (node.parentNode) {
+          node.parentNode.removeChild(node);
+        }
+      });
+
+      copyNode.style.position = "fixed";
+      copyNode.style.left = "-10000px";
+      copyNode.style.top = "0";
+      copyNode.style.width = preview.offsetWidth ? preview.offsetWidth + "px" : "800px";
+      copyNode.setAttribute("aria-hidden", "true");
+
+      document.body.appendChild(copyNode);
+
       var range = document.createRange();
       var selection = window.getSelection();
-    
+
       selection.removeAllRanges();
-      range.selectNodeContents(preview);
+      range.selectNodeContents(copyNode);
       selection.addRange(range);
-    
+
       try {
         var ok = document.execCommand("copy");
-    
+
         if (ok) {
           showToast("Copied report preview to clipboard");
         } else {
@@ -1592,8 +1618,12 @@
       } catch (e) {
         alert("Formatted copy failed. Please select the preview manually and press Ctrl+C.");
       }
-    
+
       selection.removeAllRanges();
+
+      if (copyNode.parentNode) {
+        copyNode.parentNode.removeChild(copyNode);
+      }
     });
   }
 
@@ -1673,6 +1703,8 @@
   }
 
   CIFLord.UI = {
+    renderPreview: renderPreview,
+
     init: function (state) {
       state.selectionFilter = { element: "all", atom: "all" };
       state.averageFilter = { element: "all", atom: "all" };

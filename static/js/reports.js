@@ -820,7 +820,10 @@
       addedDistances: separateAdded,
       geometryResults: geometryResults,
       disorderRows: disorderRows,
-      symmetryNotes: symmetryNotes
+      symmetryNotes: symmetryNotes,
+      ortepFigureSvg: state.ortep && state.ortep.figureSvg
+        ? state.ortep.figureSvg
+        : ""
     };
   }
 
@@ -1026,6 +1029,20 @@
     return "<p class=\"symmetry-note\">" + sentence + "</p>";
   }
 
+  function htmlOrtepFigure(model) {
+    if (!model.ortepFigureSvg) {
+      return "";
+    }
+
+    return (
+      "<div class=\"ortep-preview-figure\">" +
+        "<div class=\"ortep-preview-figure-svg\">" +
+          model.ortepFigureSvg +
+        "</div>" +
+      "</div>"
+    );
+  }
+
   function makeCaptionHtml(model, state) {
     var distances = model.bonds.concat(model.addedDistances);
     var parts = [];
@@ -1121,6 +1138,147 @@
     return body;
   }
 
+  function htmlDocumentTitle(state) {
+    var title = state.dataName || state.fileName || "CIFLord report";
+
+    return String(title || "CIFLord report")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function standaloneHtmlCss() {
+    return [
+      "html {",
+      "  background: #f3f4f6;",
+      "}",
+      "",
+      "body {",
+      "  margin: 0;",
+      "  background: #f3f4f6;",
+      "  color: #111827;",
+      "  font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;",
+      "  font-size: 15px;",
+      "  line-height: 1.45;",
+      "}",
+      "",
+      ".report-document {",
+      "  max-width: 980px;",
+      "  margin: 2rem auto;",
+      "  padding: 2rem;",
+      "  background: #ffffff;",
+      "  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);",
+      "}",
+      "",
+      "h1 {",
+      "  margin: 0 0 1.4rem;",
+      "  font-size: 1.65rem;",
+      "  line-height: 1.2;",
+      "}",
+      "",
+      "h2 {",
+      "  margin: 1.6rem 0 0.55rem;",
+      "  font-size: 1.02rem;",
+      "  line-height: 1.3;",
+      "}",
+      "",
+      "h3 {",
+      "  margin: 1.2rem 0 0.45rem;",
+      "  font-size: 0.95rem;",
+      "}",
+      "",
+      "p {",
+      "  margin: 0.55rem 0;",
+      "}",
+      "",
+      "table {",
+      "  width: 100%;",
+      "  border-collapse: collapse;",
+      "  margin: 0.55rem 0 1.1rem;",
+      "  font-size: 0.92rem;",
+      "}",
+      "",
+      "th,",
+      "td {",
+      "  border: 1px solid #d1d5db;",
+      "  padding: 0.32rem 0.45rem;",
+      "  vertical-align: top;",
+      "}",
+      "",
+      "th {",
+      "  background: #f3f4f6;",
+      "  text-align: left;",
+      "  font-weight: 650;",
+      "}",
+      "",
+      "td.number,",
+      "th.number {",
+      "  text-align: right;",
+      "  font-variant-numeric: tabular-nums;",
+      "  white-space: nowrap;",
+      "}",
+      "",
+      ".symmetry-note {",
+      "  margin: 1rem 0;",
+      "  color: #374151;",
+      "}",
+      "",
+      ".hint {",
+      "  color: #6b7280;",
+      "}",
+      "",
+      ".geometry-report-table,",
+      ".disorder-report-table {",
+      "  font-size: 0.86rem;",
+      "}",
+      "",
+      ".ortep-preview-figure {",
+      "  margin: 1.4rem 0 0.8rem;",
+      "  padding: 0.75rem;",
+      "  background: #ffffff;",
+      "  border: 1px solid #d1d5db;",
+      "  overflow-x: auto;",
+      "}",
+      "",
+      ".ortep-preview-figure-svg {",
+      "  max-width: 100%;",
+      "  margin: 0 auto;",
+      "  background: #ffffff;",
+      "}",
+      "",
+      ".ortep-preview-figure-svg svg {",
+      "  display: block;",
+      "  max-width: 100%;",
+      "  height: auto;",
+      "  margin: 0 auto;",
+      "  background: #ffffff;",
+      "}",
+      "",
+      "@media print {",
+      "  html,",
+      "  body {",
+      "    background: #ffffff;",
+      "  }",
+      "",
+      "  body {",
+      "    font-size: 11pt;",
+      "  }",
+      "",
+      "  .report-document {",
+      "    max-width: none;",
+      "    margin: 0;",
+      "    padding: 0;",
+      "    box-shadow: none;",
+      "  }",
+      "",
+      "  table,",
+      "  .ortep-preview-figure {",
+      "    break-inside: avoid;",
+      "    page-break-inside: avoid;",
+      "  }",
+      "}"
+    ].join("\n");
+  }
+
   function renderHTMLPreview(state) {
     var model = getReportModel(state);
     var tableNumber = 1;
@@ -1197,13 +1355,54 @@
     }
   
     html += htmlSymmetryNotes(model.symmetryNotes);
+
+    html += htmlOrtepFigure(model);
   
     if (state.reportOptions.showCaption) {
-      html += "<h2>Figure caption</h2>";
+      if (!model.ortepFigureSvg) {
+        html += "<h2>Figure caption</h2>";
+      }
+
       html += "<p><strong>Figure x.</strong> " + makeCaptionHtml(model, state) + "</p>";
     }
   
     return html;
+  }
+
+  function makeStandaloneHTML(state) {
+    var title = htmlDocumentTitle(state);
+    var previewHtml = renderHTMLPreview(state);
+
+    return (
+      "<!doctype html>\n" +
+      "<html lang=\"en\">\n" +
+      "<head>\n" +
+      "  <meta charset=\"utf-8\">\n" +
+      "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+      "  <title>" + escapeHtml(title) + "</title>\n" +
+      "  <style>\n" +
+      standaloneHtmlCss()
+        .split("\n")
+        .map(function (line) {
+          return "    " + line;
+        })
+        .join("\n") +
+      "\n" +
+      "  </style>\n" +
+      "</head>\n" +
+      "<body>\n" +
+      "  <main class=\"report-document\">\n" +
+      previewHtml
+        .split("\n")
+        .map(function (line) {
+          return "    " + line;
+        })
+        .join("\n") +
+      "\n" +
+      "  </main>\n" +
+      "</body>\n" +
+      "</html>\n"
+    );
   }
 
   function mdKeyValueTable(tableNumber, title, rows, dataName) {
@@ -2356,6 +2555,7 @@
 
   CIFLord.Reports = {
     renderHTMLPreview: renderHTMLPreview,
+    makeStandaloneHTML: makeStandaloneHTML,
     makeMarkdown: makeMarkdown,
     makePlainText: makePlainText,
     makeCSV: makeCSV,
