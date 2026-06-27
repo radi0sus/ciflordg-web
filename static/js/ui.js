@@ -1258,6 +1258,10 @@
     if (typeof state.reportOptions.showAngles !== "boolean") {
       state.reportOptions.showAngles = true;
     }
+
+    if (typeof state.reportOptions.showHBonds !== "boolean") {
+      state.reportOptions.showHBonds = true;
+    }
   
     if (typeof state.reportOptions.showGeometry !== "boolean") {
       state.reportOptions.showGeometry = true;
@@ -1285,6 +1289,7 @@
   
     var showBonds = $("opt-show-bonds");
     var showAngles = $("opt-show-angles");
+    var showHBonds = $("opt-show-hbonds");
     var showGeometry = $("opt-show-geometry");
     var showDisorder = $("opt-show-disorder");
     var showCaption = $("opt-show-caption");
@@ -1306,6 +1311,15 @@
   
       showAngles.addEventListener("change", function () {
         state.reportOptions.showAngles = this.checked;
+        renderAll();
+      });
+    }
+
+    if (showHBonds) {
+      showHBonds.checked = !!state.reportOptions.showHBonds;
+  
+      showHBonds.addEventListener("change", function () {
+        state.reportOptions.showHBonds = this.checked;
         renderAll();
       });
     }
@@ -1727,6 +1741,10 @@
       
       if (typeof state.reportOptions.showAngles !== "boolean") {
         state.reportOptions.showAngles = true;
+      }
+
+      if (typeof state.reportOptions.showHBonds !== "boolean") {
+        state.reportOptions.showHBonds = true;
       }
       
       if (typeof state.reportOptions.showGeometry !== "boolean") {

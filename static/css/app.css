@@ -702,18 +702,40 @@ sup {
    only ordinary value tables with table headers = 60:40.
    Geometry report table is excluded because it has many columns. */
 
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table) {
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) {
   table-layout: fixed;
 }
 
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table) th:first-child,
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table) td:first-child {
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) th:first-child,
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) td:first-child {
   width: 60%;
 }
 
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table) th:nth-child(2),
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table) td:nth-child(2) {
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) th:nth-child(2),
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) td:nth-child(2) {
   width: 40%;
+}
+
+/* H-Bond table inside the report preview */
+
+.report-preview table.hbond-report-table {
+  table-layout: fixed;
+}
+
+.report-preview table.hbond-report-table th:first-child,
+.report-preview table.hbond-report-table td:first-child {
+  width: 30%;
+}
+
+.report-preview table.hbond-report-table th:nth-child(2),
+.report-preview table.hbond-report-table td:nth-child(2),
+.report-preview table.hbond-report-table th:nth-child(3),
+.report-preview table.hbond-report-table td:nth-child(3),
+.report-preview table.hbond-report-table th:nth-child(4),
+.report-preview table.hbond-report-table td:nth-child(4),
+.report-preview table.hbond-report-table th:nth-child(5),
+.report-preview table.hbond-report-table td:nth-child(5) {
+  width: 17.5%;
 }
 
 /* Geometry table inside the report preview */
@@ -1048,7 +1070,8 @@ sup {
 .geometry-ligand-table .number,
 .disorder-table .number,
 .report-preview table.geometry-report-table .number,
-.report-preview table.disorder-report-table .number {
+.report-preview table.disorder-report-table .number,
+.report-preview table.hbond-report-table .number {
   white-space: nowrap;
 }
 

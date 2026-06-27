@@ -778,6 +778,10 @@
       ? filtered(state.angles, reportFilter)
       : [];
 
+    var hbonds = state.reportOptions.showHBonds
+      ? (state.hbonds || [])
+      : [];
+
     bonds = applyIndependentOnly(bonds, state);
     angles = applyIndependentOnly(angles, state);
     angles = applyMiddleAtomOnlyToAngles(angles, state, reportFilter);
@@ -801,7 +805,11 @@
       separateAdded = added;
     }
 
-    var allForSymmetry = mergedBonds.concat(separateAdded).concat(angles);
+    var allForSymmetry = mergedBonds
+      .concat(separateAdded)
+      .concat(angles)
+      .concat(hbonds);
+
     var symmetryNotes = CIFLord.Core.usedSymmetryNotes(state, allForSymmetry);
 
     var geometryResults = state.reportOptions.showGeometry === false
@@ -817,6 +825,7 @@
       crystalRows: makeCrystalRows(state),
       bonds: mergedBonds,
       angles: angles,
+      hbonds: hbonds,
       addedDistances: separateAdded,
       geometryResults: geometryResults,
       disorderRows: disorderRows,
@@ -877,6 +886,58 @@
               "<tr>" +
                 "<td>" + item.atomsHtml + "</td>" +
                 "<td class=\"number\">" + escapeHtml(item.value) + "</td>" +
+              "</tr>"
+            );
+          }).join("") +
+        "</tbody>" +
+      "</table>"
+    );
+  }
+
+  function hbondTitle(state, dataName) {
+    var unitText = useSiUnits(state)
+      ? " /Å and /°"
+      : " [Å] and [°]";
+
+    return "Hydrogen bonds for <strong>" + escapeHtml(dataName) + "</strong>" + unitText + ".";
+  }
+
+  function hbondTitleText(state, dataName) {
+    var unitText = useSiUnits(state)
+      ? " /Å and /°"
+      : " [Å] and [°]";
+
+    return "Hydrogen bonds for " + dataName + unitText + ".";
+  }
+
+  function htmlHbondTable(tableNumber, state, hbonds, dataName) {
+    if (!hbonds || !hbonds.length) {
+      return "";
+    }
+
+    return (
+      "<h2>Table " + tableNumber + ": " +
+        hbondTitle(state, dataName) +
+      "</h2>" +
+      "<table class=\"hbond-report-table\">" +
+        "<thead>" +
+          "<tr>" +
+            "<th>D–H···A</th>" +
+            "<th>d(D–H)</th>" +
+            "<th>d(H···A)</th>" +
+            "<th>d(D···A)</th>" +
+            "<th>∠(DHA)</th>" +
+          "</tr>" +
+        "</thead>" +
+        "<tbody>" +
+          hbonds.map(function (item) {
+            return (
+              "<tr>" +
+                "<td>" + item.atomsHtml + "</td>" +
+                "<td class=\"number\">" + escapeHtml(item.distanceDH || "—") + "</td>" +
+                "<td class=\"number\">" + escapeHtml(item.distanceHA || "—") + "</td>" +
+                "<td class=\"number\">" + escapeHtml(item.distanceDA || "—") + "</td>" +
+                "<td class=\"number\">" + escapeHtml(item.angleDHA || "—") + "</td>" +
               "</tr>"
             );
           }).join("") +
@@ -1326,6 +1387,15 @@
         model.dataName
       );
     }
+
+    if (model.hbonds.length) {
+      html += htmlHbondTable(
+        tableNumber++,
+        state,
+        model.hbonds,
+        model.dataName
+      );
+    }
   
     if (model.geometryResults.length) {
       html += htmlGeometryTable(
@@ -1348,6 +1418,7 @@
       !model.bonds.length &&
       !model.addedDistances.length &&
       !model.angles.length &&
+      !model.hbonds.length &&
       !model.geometryResults.length &&
       !model.disorderRows.length
     ) {
@@ -1439,6 +1510,31 @@
       out += "| " + markdownCell(item.atomsHtml) + " | " + markdownCell(item.value) + " |\n";
     });
   
+    out += "\n";
+    return out;
+  }
+
+  function mdHbondTable(tableNumber, state, hbonds, dataName) {
+    var out = "";
+
+    if (!hbonds || !hbonds.length) {
+      return "";
+    }
+
+    out += "## Table " + tableNumber + ": " + hbondTitleText(state, dataName) + "\n\n";
+    out += "| D–H···A | d(D–H) | d(H···A) | d(D···A) | ∠(DHA) |\n";
+    out += "|---|---:|---:|---:|---:|\n";
+
+    hbonds.forEach(function (item) {
+      out +=
+        "| " + markdownCell(item.atomsHtml) +
+        " | " + markdownCell(item.distanceDH || "—") +
+        " | " + markdownCell(item.distanceHA || "—") +
+        " | " + markdownCell(item.distanceDA || "—") +
+        " | " + markdownCell(item.angleDHA || "—") +
+        " |\n";
+    });
+
     out += "\n";
     return out;
   }
@@ -1548,6 +1644,15 @@
         model.dataName
       );
     }
+
+    if (model.hbonds.length) {
+      out += mdHbondTable(
+        tableNumber++,
+        state,
+        model.hbonds,
+        model.dataName
+      );
+    }
     
     if (model.geometryResults.length) {
       out += mdGeometryTable(
@@ -1570,6 +1675,7 @@
       !model.bonds.length &&
       !model.addedDistances.length &&
       !model.angles.length &&
+      !model.hbonds.length &&
       !model.geometryResults.length &&
       !model.disorderRows.length
     ) {
@@ -1657,6 +1763,61 @@
       out += padRight(plainInline(item.atomsHtml), atomWidth) + "    " + item.value + "\n";
     });
   
+    out += "\n";
+    return out;
+  }
+
+  function plainHbondTable(tableNumber, state, hbonds, dataName) {
+    if (!hbonds || !hbonds.length) {
+      return "";
+    }
+
+    var headers = [
+      "D-H...A",
+      "d(D-H)",
+      "d(H...A)",
+      "d(D...A)",
+      "<(DHA)"
+    ];
+
+    var rows = hbonds.map(function (item) {
+      return [
+        plainInline(item.atomsHtml),
+        item.distanceDH || "—",
+        item.distanceHA || "—",
+        item.distanceDA || "—",
+        item.angleDHA || "—"
+      ];
+    });
+
+    var widths = headers.map(function (header) {
+      return header.length;
+    });
+
+    rows.forEach(function (row) {
+      row.forEach(function (cell, index) {
+        widths[index] = Math.max(widths[index], String(cell || "").length);
+      });
+    });
+
+    function rowLine(cells) {
+      return cells.map(function (cell, index) {
+        return padRight(cell, widths[index]);
+      }).join("    ") + "\n";
+    }
+
+    var out = "";
+
+    out += plainLine("Table " + tableNumber + ": " + hbondTitleText(state, dataName));
+    out += rowLine(headers);
+    out += rowLine(widths.map(function (width) {
+      return "-".repeat(width);
+    }));
+
+    rows.forEach(function (row) {
+      out += rowLine(row);
+    });
+
     out += "\n";
     return out;
   }
@@ -1899,6 +2060,15 @@
         model.dataName
       );
     }
+
+    if (model.hbonds.length) {
+      out += plainHbondTable(
+        tableNumber++,
+        state,
+        model.hbonds,
+        model.dataName
+      );
+    }
     
     if (model.geometryResults.length) {
       out += plainGeometryTable(
@@ -1921,6 +2091,7 @@
       !model.bonds.length &&
       !model.addedDistances.length &&
       !model.angles.length &&
+      !model.hbonds.length &&
       !model.geometryResults.length &&
       !model.disorderRows.length
     ) {
@@ -2251,6 +2422,43 @@
     return out;
   }
 
+  function rtfHbondTable(tableNumber, state, hbonds, dataName) {
+    if (!hbonds || !hbonds.length) {
+      return "";
+    }
+
+    var out = "";
+
+    out += rtfParagraph(
+      "{\\b Table " + tableNumber + ": }" +
+      rtfEscape(hbondTitleText(state, dataName))
+    );
+
+    out += "{\\trowd\\trgaph108\\trql" +
+      "\\cellx2600\\cellx3900\\cellx5200\\cellx6600\\cellx7800" +
+      "\\pard\\intbl \\f0\\fs22 {\\b " + rtfEscape("D-H...A") + "}\\cell" +
+      "\\pard\\intbl \\f0\\fs22 {\\b " + rtfEscape("d(D-H)") + "}\\cell" +
+      "\\pard\\intbl \\f0\\fs22 {\\b " + rtfEscape("d(H...A)") + "}\\cell" +
+      "\\pard\\intbl \\f0\\fs22 {\\b " + rtfEscape("d(D...A)") + "}\\cell" +
+      "\\pard\\intbl \\f0\\fs22 {\\b " + rtfEscape("<(DHA)") + "}\\cell" +
+      "\\row}\n";
+
+    hbonds.forEach(function (item) {
+      out += "{\\trowd\\trgaph108\\trql" +
+        "\\cellx2600\\cellx3900\\cellx5200\\cellx6600\\cellx7800" +
+        "\\pard\\intbl \\f0\\fs22 " + rtfInlineFromHtml(item.atomsHtml) + "\\cell" +
+        "\\pard\\intbl \\f0\\fs22 " + rtfEscape(item.distanceDH || "—") + "\\cell" +
+        "\\pard\\intbl \\f0\\fs22 " + rtfEscape(item.distanceHA || "—") + "\\cell" +
+        "\\pard\\intbl \\f0\\fs22 " + rtfEscape(item.distanceDA || "—") + "\\cell" +
+        "\\pard\\intbl \\f0\\fs22 " + rtfEscape(item.angleDHA || "—") + "\\cell" +
+        "\\row}\n";
+    });
+
+    out += rtfBlankLine();
+
+    return out;
+  }
+
   function rtfTau(label) {
     if (label === "tau4") {
       return rtfEscape("τ") + "{\\sub 4}";
@@ -2516,6 +2724,15 @@
         titleWithUnit(state, "Selected bond angles", "°"),
         "Angle",
         model.angles,
+        model.dataName
+      );
+    }
+
+    if (model.hbonds.length) {
+      body += rtfHbondTable(
+        tableNumber++,
+        state,
+        model.hbonds,
         model.dataName
       );
     }

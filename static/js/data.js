@@ -18,6 +18,7 @@
       reportOptions: {
         showBonds: true,
         showAngles: true,
+        showHBonds: true,
         showGeometry: true,
         showDisorder: true,
         showCaption: true,
@@ -133,6 +134,7 @@
 
       bonds: [],
       angles: [],
+      hbonds: [],
       addedDistances: [],
       interatomicSearchResults: [],
       symmetryNotes: [],

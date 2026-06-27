@@ -754,6 +754,110 @@
     return angles;
   }
 
+  function extractHBonds(parsed, symmetryOps, symFactory) {
+    var loop = CIFLord.Parser.findLoopContaining(parsed, "_geom_hbond_atom_site_label_H");
+
+    if (!loop) {
+      return [];
+    }
+
+    var hbonds = [];
+
+    loop.rows.forEach(function (row, i) {
+      var donor = rowValue(loop, row, [
+        "_geom_hbond_atom_site_label_D"
+      ]);
+
+      var hydrogen = rowValue(loop, row, [
+        "_geom_hbond_atom_site_label_H"
+      ]);
+
+      var acceptor = rowValue(loop, row, [
+        "_geom_hbond_atom_site_label_A"
+      ]);
+
+      if (!donor || !hydrogen || !acceptor) {
+        return;
+      }
+
+      var distanceDH = rowValue(loop, row, [
+        "_geom_hbond_distance_DH"
+      ]);
+
+      var distanceHA = rowValue(loop, row, [
+        "_geom_hbond_distance_HA"
+      ]);
+
+      var distanceDA = rowValue(loop, row, [
+        "_geom_hbond_distance_DA"
+      ]);
+
+      var angleDHA = rowValue(loop, row, [
+        "_geom_hbond_angle_DHA"
+      ]);
+
+      var symD = stripSymIdentity(rowValue(loop, row, [
+        "_geom_hbond_site_symmetry_D",
+        "_geom_hbond_atom_site_symmetry_D"
+      ]));
+
+      var symH = stripSymIdentity(rowValue(loop, row, [
+        "_geom_hbond_site_symmetry_H",
+        "_geom_hbond_atom_site_symmetry_H"
+      ]));
+
+      var symA = stripSymIdentity(rowValue(loop, row, [
+        "_geom_hbond_site_symmetry_A",
+        "_geom_hbond_atom_site_symmetry_A"
+      ]));
+
+      var sD = symFactory.get(symD);
+      var sH = symFactory.get(symH);
+      var sA = symFactory.get(symA);
+
+      var refs = unique([sD, sH, sA]);
+
+      hbonds.push({
+        id: "hb" + (i + 1),
+        source: "cif",
+        kind: "hbond",
+
+        donorLabel: donor,
+        hydrogenLabel: hydrogen,
+        acceptorLabel: acceptor,
+
+        symDCode: symD,
+        symHCode: symH,
+        symACode: symA,
+
+        atomsHtml:
+          escapeAtom(donor) + symSup(sD) +
+          "&ndash;" +
+          escapeAtom(hydrogen) + symSup(sH) +
+          "&middot;&middot;&middot;" +
+          escapeAtom(acceptor) + symSup(sA),
+
+        atomsText:
+          donor + symText(sD) +
+          "-" +
+          hydrogen + symText(sH) +
+          "..." +
+          acceptor + symText(sA),
+
+        distanceDH: distanceDH,
+        distanceHA: distanceHA,
+        distanceDA: distanceDA,
+        angleDHA: angleDHA,
+
+        report: true,
+        symRefs: refs,
+        symCodes: unique([symD, symH, symA])
+      });
+    });
+
+    return hbonds;
+  }
+
   function buildSymmetryNotes(symFactory, symmetryOps) {
     var notes = [];
 
@@ -1252,6 +1356,7 @@
 
       var bonds = extractBonds(parsed, symmetryOps, symFactory);
       var angles = extractAngles(parsed, symmetryOps, symFactory);
+      var hbonds = extractHBonds(parsed, symmetryOps, symFactory);
       var symmetryNotes = buildSymmetryNotes(symFactory, symmetryOps);
 
       state.fileName = fileName || "loaded.cif";
@@ -1268,6 +1373,7 @@
 
       state.bonds = bonds;
       state.angles = angles;
+      state.hbonds = hbonds;
       state.addedDistances = [];
       state.interatomicSearchResults = [];
       state.symmetryNotes = symmetryNotes;
@@ -1329,6 +1435,10 @@
       
       if (typeof state.reportOptions.showAngles !== "boolean") {
         state.reportOptions.showAngles = true;
+      }
+
+      if (typeof state.reportOptions.showHBonds !== "boolean") {
+        state.reportOptions.showHBonds = true;
       }
       
       if (typeof state.reportOptions.showGeometry !== "boolean") {
