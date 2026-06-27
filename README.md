@@ -1,6 +1,6 @@
 # CIFLord Web
 
-Serverless browser application for CIF preview, crystallographic report generation, average calculations, geometry-parameter analysis, interatomic distance analysis, disorder-model summarisation, and ORTEP-style SVG structure plotting.
+Serverless browser application for CIF reporting, average calculations, geometry-parameter analysis, interatomic distance analysis, disorder-model summarisation, and ORTEP-style SVG structure plotting.
 
 ## Start
 
@@ -24,6 +24,7 @@ This web version provides the useful analysis, reporting, and visualisation part
 - Optional filtering of independent entries only
 - Optional filtering of bond angles by middle atom only
 - HTML preview of crystallographic report data
+- Standalone HTML report export with embedded CSS and inline SVG figures
 - Average calculations for bond lengths, interatomic distances, and bond angles
 - Geometry-parameter calculations from CIF geometry bonds
 - Continuous Shape Measures (CShM) for coordination numbers 2–6
@@ -37,9 +38,11 @@ This web version provides the useful analysis, reporting, and visualisation part
 - Optional inclusion of the disorder table in the generated report
 - ORTEP-style SVG structure plotting from CIF atom, bond, symmetry, and ADP data
 - Interactive ORTEP view rotation and manual atom/bond display overrides
+- Manual hydrogen-bond annotations in the ORTEP plot based on visible atoms and simple geometric criteria
+- Optional use of the current ORTEP plot as an inline figure in the HTML preview and standalone HTML export
 - ORTEP export as SVG or PNG
 - ORTEP copy as PNG
-- Export as Markdown, plain text, CSV, and RTF
+- Export as standalone HTML, Markdown, plain text, CSV, and RTF
 - Copy as formatted preview, Markdown, or plain text
 
 The following features are intentionally not part of this version:
@@ -51,7 +54,7 @@ The following features are intentionally not part of this version:
 - PDF export
 - DOCX export
 
-LaTeX or PDF output can later be generated from Markdown using tools such as Pandoc.
+LaTeX or PDF output can later be generated from Markdown or the standalone HTML report using external tools or the browser print dialog.
 
 ## Current status
 
@@ -69,6 +72,8 @@ The current version contains a working browser-only implementation with:
 - Symmetry footnotes for generated atoms
 - Selection tab with filtered bond lengths, bond angles, and added distances
 - Preview panel for the generated report
+- Optional ORTEP figure display in the report preview
+- Standalone HTML report export with embedded CSS and inline ORTEP SVG figure where present
 - Floating/sticky sidebar and tab navigation
 - Report options:
   - show/hide bond lengths
@@ -79,7 +84,7 @@ The current version contains a working browser-only implementation with:
   - middle-atom-only angle filtering
   - SI-style unit labels
   - separate or merged display of added distances
-- Average tab with grouped statistics
+- Averages tab with grouped statistics
 - Geometry Parameters tab:
   - element and atom selection
   - ligand atoms taken from the CIF geometry bond table
@@ -102,8 +107,8 @@ The current version contains a working browser-only implementation with:
   - editable moiety field with suggestion list
   - editable comment field with automatic comment suggestions
   - optional inclusion of the disorder table in the generated report
-- ORTEP tab:
-  - lazy generation when the ORTEP tab is opened
+- ORTEP Plot tab:
+  - lazy generation when the ORTEP Plot tab is opened
   - bonded-fragment/component selection
   - ORTEP-style SVG displacement ellipsoid plot
   - use of anisotropic displacement parameters where available
@@ -119,16 +124,20 @@ The current version contains a working browser-only implementation with:
   - optional hydrogen display
   - optional addition of coordinate hydrogen atoms missing from CIF geometry bonds
   - manual atom and bond visibility overrides
+  - manual hydrogen-bond annotations between visible atoms
+  - optional use of the current ORTEP plot as a figure in the HTML preview
+  - removal of the ORTEP figure from the HTML preview
   - PNG copy to clipboard
   - PNG download
   - SVG download
 - Export/download:
+  - standalone HTML
   - RTF
   - Markdown
   - plain text
   - CSV
 - Clipboard copy:
-  - formatted preview
+  - formatted preview without inline ORTEP SVG
   - Markdown
   - plain text
   - ORTEP PNG image
@@ -147,6 +156,7 @@ The parser currently supports the CIF features needed for the reporting and ORTE
 - common atom-site anisotropic displacement parameter loops
 - common geometry bond loops
 - common geometry angle loops
+- common geometry hydrogen-bond loops where present
 - common symmetry operation loops
 - embedded multiline values such as `_shelx_res_file`
 
@@ -198,6 +208,14 @@ The application uses, where available, data such as:
 - `_geom_angle_site_symmetry_1`
 - `_geom_angle_site_symmetry_2`
 - `_geom_angle_site_symmetry_3`
+- `_geom_hbond_atom_site_label_D`
+- `_geom_hbond_atom_site_label_H`
+- `_geom_hbond_atom_site_label_A`
+- `_geom_hbond_distance_DH`
+- `_geom_hbond_distance_HA`
+- `_geom_hbond_distance_DA`
+- `_geom_hbond_angle_DHA`
+- `_geom_hbond_site_symmetry_A`
 - `_space_group_symop_operation_xyz`
 - `_symmetry_equiv_pos_as_xyz`
 - `_shelx_res_file`
@@ -224,7 +242,7 @@ The octahedricity parameter `O` is intentionally not included.
 
 Calculated geometry-parameter results are stored in the tab until they are removed or the CIF is reloaded.
 
-Geometry-parameter results can be included in or excluded from the generated report using the global report option. Included geometry-parameter results are added as a separate `Geometry parameters` table in the report preview and in Markdown, plain text, and RTF exports.
+Geometry-parameter results can be included in or excluded from the generated report using the global report option. Included geometry-parameter results are added as a separate `Geometry parameters` table in the report preview and in standalone HTML, Markdown, plain text, and RTF exports.
 
 Limitations:
 
@@ -237,11 +255,11 @@ Limitations:
 
 ## ORTEP SVG plot
 
-The ORTEP tab generates an ORTEP-style SVG structure plot from the loaded CIF.
+The ORTEP Plot tab generates an ORTEP-style SVG structure plot from the loaded CIF.
 
-The ORTEP model is generated lazily when the ORTEP tab is opened. Loading a CIF file does not automatically create an ORTEP plot while the user is working in other tabs.
+The ORTEP model is generated lazily when the ORTEP Plot tab is opened. Loading a CIF file does not automatically create an ORTEP plot while the user is working in other tabs.
 
-The ORTEP tab supports:
+The ORTEP Plot tab supports:
 
 - bonded-fragment/component selection
 - use of CIF geometry bonds
@@ -261,13 +279,20 @@ The ORTEP tab supports:
 - manual atom visibility overrides
 - manual atom label overrides
 - manual bond visibility overrides
+- manual hydrogen-bond annotations between visible atoms
 - interactive mouse rotation
 - double-click view reset
+- use of the current ORTEP plot as an inline SVG figure in the HTML preview
+- removal of the ORTEP figure from the HTML preview
 - PNG copy to clipboard
 - PNG download
 - SVG download
 
-The ORTEP plot is independent of the generated crystallographic report. It is not included in the report preview, Markdown export, plain-text export, CSV export, or RTF export.
+Hydrogen-bond annotations are added interactively. When a hydrogen atom is selected, the app searches for plausible acceptor atoms among the atoms currently visible in the ORTEP plot using simple geometric criteria. Added hydrogen bonds are drawn as dashed H···A contacts and can be removed again. The feature is intended for selected plot annotations, not for full hydrogen-bond network analysis.
+
+The ORTEP figure can be inserted into the HTML preview by using the ORTEP Plot controls. The inserted figure is a frozen copy of the current ORTEP SVG view. Subsequent rotation or styling changes do not update the preview figure until the user explicitly updates it again.
+
+The ORTEP figure is included in the standalone HTML export as inline SVG when it has been added to the preview. It is not embedded in RTF, Markdown, plain-text, or CSV exports.
 
 Limitations:
 
@@ -275,6 +300,8 @@ Limitations:
 - If CIF geometry bonds are incomplete, the displayed bonded fragment may be incomplete.
 - Extended or polymeric structures may be truncated by the expansion limits.
 - The ADP-to-ellipsoid rendering is intended as a practical browser-based visualisation and should be validated against established crystallographic drawing programs for critical publication use.
+- Hydrogen-bond annotations use simple geometry-based criteria and only consider atoms currently visible in the ORTEP plot.
+- Hydrogen-bond annotations are intended for manual plot annotation, not full packing or hydrogen-bond network analysis.
 - PNG export and PNG clipboard copy are generated in the browser from the SVG representation.
 - PNG clipboard copy depends on browser support for image clipboard writing and may require a secure browser context.
 - ORTEP plots are not written back to CIF files.
@@ -369,7 +396,7 @@ Limitations:
 
 ## Average calculations
 
-The Average section groups values by element pattern.
+The Averages section groups values by element pattern.
 
 Examples:
 
@@ -380,13 +407,21 @@ Examples:
   - `N–Fe–N`
   - `O–Fe–N`
 
-The standard deviation shown in the Average section describes the scatter of the grouped selected values.
+The standard deviation shown in the Averages section describes the scatter of the grouped selected values.
 
 It is not the crystallographic e.s.d. of the mean.
 
 Individual crystallographic e.s.d.s are currently not propagated into the average statistics.
 
 ## Export formats
+
+### Standalone HTML
+
+Standalone HTML export writes a complete HTML report containing the current preview content and embedded CSS.
+
+If an ORTEP figure has been added to the preview, it is included in the standalone HTML export as inline SVG.
+
+The standalone HTML export is intended for browser viewing, printing, PDF creation through the browser print dialog, and archival sharing as a single file.
 
 ### RTF
 
@@ -469,18 +504,21 @@ This works well in many browsers, but exact formatting can depend on the target 
 
 Microsoft Word and other word processors may not reproduce the browser preview exactly when using formatted copy, because browser CSS is only partially transferred through the clipboard.
 
+Inline SVG from the ORTEP figure is intentionally omitted from formatted preview copy to avoid SVG text labels being pasted as plain text in word processors. Use ORTEP PNG copy or PNG/SVG download for transferring the plot image.
+
 True RTF clipboard copy is not reliable in browsers, especially when running from `file://`.
 
 Therefore:
 
-- formatted preview copy is supported
+- formatted preview copy is supported, but omits the inline ORTEP SVG figure
 - Markdown copy is supported
 - plain text copy is supported
 - ORTEP PNG image copy is supported where the browser allows image clipboard writing
+- standalone HTML download is supported and includes the inline ORTEP SVG figure if present
 - RTF download is supported
 - direct RTF clipboard copy is not provided
 
-For word-processor workflows, use the RTF download where possible. ORTEP plots can be exported or copied separately as PNG, or exported separately as SVG.
+For word-processor workflows, use the RTF download where possible. ORTEP plots can be exported or copied separately as PNG, or exported separately as SVG. For a single-file report including the ORTEP SVG figure, use the standalone HTML export.
 
 ## Known limitations
 
@@ -493,7 +531,8 @@ For word-processor workflows, use the RTF download where possible. ORTEP plots c
 - CShM calculations are available for coordination numbers 2–6.
 - Geometry-parameter results are not currently included in CSV export.
 - ORTEP plotting depends on CIF geometry bonds and available ADP data.
-- ORTEP plots are exported or copied separately as SVG or PNG and are not part of the generated text/RTF/Markdown/CSV report exports.
+- ORTEP hydrogen-bond annotations only consider currently visible atoms and are not a packing-network search.
+- ORTEP plots can be included as inline SVG in the preview and standalone HTML export, but are not embedded in RTF/Markdown/plain-text/CSV exports.
 - ORTEP PNG clipboard copy depends on browser support and security context.
 - Manual Disorder Helper edits are not written back to CIF files.
 - No CIF editing or rewriting is provided.
