@@ -241,7 +241,9 @@
           var clean = stripInlineComment(dataRaw);
           var tokens = tokenizeLine(clean);
 
-          dataTokens = dataTokens.concat(tokens);
+          for (var ti = 0; ti < tokens.length; ti++) {
+            dataTokens.push(tokens[ti]);
+          }
           i++;
         }
 
