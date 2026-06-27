@@ -374,6 +374,87 @@
     }).filter(Boolean);
   }
 
+  function extractHydrogenBonds(parsed) {
+    var loop = findLoop(parsed, "_geom_hbond_atom_site_label_H");
+
+    if (!loop) {
+      return [];
+    }
+
+    return loop.rows.map(function (row, i) {
+      var donor = rowValue(loop, row, [
+        "_geom_hbond_atom_site_label_D"
+      ]);
+
+      var hydrogen = rowValue(loop, row, [
+        "_geom_hbond_atom_site_label_H"
+      ]);
+
+      var acceptor = rowValue(loop, row, [
+        "_geom_hbond_atom_site_label_A"
+      ]);
+
+      if (!hydrogen || !acceptor) {
+        return null;
+      }
+
+      var distanceDH = rowValue(loop, row, [
+        "_geom_hbond_distance_DH"
+      ]);
+
+      var distanceHA = rowValue(loop, row, [
+        "_geom_hbond_distance_HA"
+      ]);
+
+      var distanceDA = rowValue(loop, row, [
+        "_geom_hbond_distance_DA"
+      ]);
+
+      var angleDHA = rowValue(loop, row, [
+        "_geom_hbond_angle_DHA"
+      ]);
+
+      var symD = stripSymIdentity(rowValue(loop, row, [
+        "_geom_hbond_site_symmetry_D",
+        "_geom_hbond_atom_site_symmetry_D"
+      ]));
+
+      var symH = stripSymIdentity(rowValue(loop, row, [
+        "_geom_hbond_site_symmetry_H",
+        "_geom_hbond_atom_site_symmetry_H"
+      ]));
+
+      var symA = stripSymIdentity(rowValue(loop, row, [
+        "_geom_hbond_site_symmetry_A",
+        "_geom_hbond_atom_site_symmetry_A"
+      ]));
+
+      return {
+        id: "hb_cif_" + (i + 1),
+
+        donorLabel: donor,
+        hydrogenLabel: hydrogen,
+        acceptorLabel: acceptor,
+
+        donorSymCode: symD,
+        hydrogenSymCode: symH,
+        acceptorSymCode: symA,
+
+        distanceDH: distanceDH,
+        distanceHA: distanceHA,
+        distanceDA: distanceDA,
+        angleDHA: angleDHA,
+
+        numericalDistanceDH: parseNumber(distanceDH),
+        numericalDistanceHA: parseNumber(distanceHA),
+        numericalDistanceDA: parseNumber(distanceDA),
+        numericalAngleDHA: parseNumber(angleDHA),
+
+        source: "cif"
+      };
+    }).filter(Boolean);
+  }
+
   function hydrogenParentMaxDistance(parentElement) {
     if (CIFLord.Elements && CIFLord.Elements.hydrogenParentMaxDistance) {
       return CIFLord.Elements.hydrogenParentMaxDistance(parentElement);
@@ -474,6 +555,7 @@
     var atoms = extractAtoms(parsed, cell, M, adps);
     var symops = extractSymmetryOps(parsed);
     var bonds = extractBonds(parsed);
+    var hbonds = extractHydrogenBonds(parsed);
 
     var atomByLabel = {};
     var atomsByLabel = {};
@@ -508,6 +590,7 @@
       atomBySourceId: atomBySourceId,
       symops: symops,
       bonds: bonds,
+      hbonds: hbonds,
       attachedHydrogensByParent: attachedHydrogensByParent,
       adpCount: atoms.filter(function (atom) {
         return !!atom.adp;
@@ -2435,6 +2518,8 @@
     var atomOverrides = displayOptions.atomOverrides || {};
     var bondOverrides = displayOptions.bondOverrides || {};
 
+    var hydrogenBonds = options.hydrogenBonds || [];
+
     var allAtoms = fragment.atoms || [];
     var allBonds = fragment.bonds || [];
 
@@ -2899,6 +2984,19 @@
         "y2=\"" + y2 + "\" " +
         "stroke=\"transparent\" " +
         "stroke-width=\"16\" " +
+        "stroke-linecap=\"round\" " +
+        "pointer-events=\"stroke\"/>";
+    }
+    
+    function makeHydrogenBondHitSvg(hbond, x1, y1, x2, y2) {
+      return "<line " +
+        "data-hbond-key=\"" + escapeXml(hbond.id || "") + "\" " +
+        "x1=\"" + x1 + "\" " +
+        "y1=\"" + y1 + "\" " +
+        "x2=\"" + x2 + "\" " +
+        "y2=\"" + y2 + "\" " +
+        "stroke=\"transparent\" " +
+        "stroke-width=\"14\" " +
         "stroke-linecap=\"round\" " +
         "pointer-events=\"stroke\"/>";
     }
@@ -3994,6 +4092,79 @@
           bondShadowSvg +
 
           coreBondSvg
+      });
+    });
+
+    /*
+      User-selected hydrogen-bond annotations.
+
+      These are not part of the normal CIF geometry bond table.
+      They are drawn as dashed H···A contacts and are supplied by the UI
+      through options.hydrogenBonds.
+    */
+    hydrogenBonds.forEach(function (hbond) {
+      var hydrogen = atomByKey[hbond.hydrogenAtomKey];
+      var acceptor = atomByKey[hbond.acceptorAtomKey];
+
+      if (!hydrogen || !acceptor) {
+        return;
+      }
+
+      var phCenter = screenPoint(hydrogen.cart);
+      var paCenter = screenPoint(acceptor.cart);
+
+      var hbondGap = 1.0;
+
+      var ph = clipBondEndpointToAtomWithGap(
+        hydrogen,
+        phCenter,
+        paCenter,
+        hbondGap
+      );
+
+      var pa = clipBondEndpointToAtomWithGap(
+        acceptor,
+        paCenter,
+        phCenter,
+        hbondGap
+      );
+
+      var dx = pa.x - ph.x;
+      var dy = pa.y - ph.y;
+
+      if (Math.sqrt(dx * dx + dy * dy) < 1.0) {
+        return;
+      }
+
+      var x1 = ph.x.toFixed(2);
+      var y1 = ph.y.toFixed(2);
+      var x2 = pa.x.toFixed(2);
+      var y2 = pa.y.toFixed(2);
+
+      var hbondWidth = Math.max(1.2, bondWidth * 0.70);
+      var hbondDashArray =
+        (hbondWidth * 3.0).toFixed(2) +
+        " " +
+        (hbondWidth * 2.4).toFixed(2);
+
+      hitItems.push(
+        makeHydrogenBondHitSvg(hbond, x1, y1, x2, y2)
+      );
+
+      drawItems.push({
+        layer: 12,
+        z: (phCenter.z + paCenter.z) / 2,
+        svg:
+          makeLineSvg(
+            x1,
+            y1,
+            x2,
+            y2,
+            hbond.color || "#2563eb",
+            hbondWidth,
+            "round",
+            hbondDashArray
+          )
       });
     });
 

@@ -71,6 +71,10 @@
       ortep.components = [];
     }
 
+    if (!ortep.addedHydrogenBonds) {
+      ortep.addedHydrogenBonds = [];
+    }
+
     if (typeof ortep.initialized !== "boolean") {
       ortep.initialized = false;
     }
@@ -161,6 +165,7 @@
 
       liveSvg: "",
       lastFitScale: null,
+      addedHydrogenBonds: [],
 
       sourceFilename: state.fileName || "",
 
@@ -846,6 +851,375 @@
     });
   }
 
+  function atomIsVisibleInOrtep(state, atom) {
+    var ortep = ensureState(state);
+    var override = ortep.displayOptions.atomOverrides[atom.key] || {};
+
+    if (override.show === true) {
+      return true;
+    }
+
+    if (override.show === false) {
+      return false;
+    }
+
+    if (atom.element === "H" && ortep.displayOptions.showHydrogen === false) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function isHydrogenBondDonorElement(element) {
+    return element === "N" || element === "O" || element === "S";
+  }
+
+  function isHydrogenBondAcceptorElement(element) {
+    return (
+      element === "N" ||
+      element === "O" ||
+      element === "F" ||
+      element === "Cl" ||
+      element === "Br" ||
+      element === "I" ||
+      element === "S"
+    );
+  }
+
+  function maxHydrogenAcceptorDistance(acceptorElement) {
+    if (
+      acceptorElement === "Cl" ||
+      acceptorElement === "Br" ||
+      acceptorElement === "I"
+    ) {
+      return 3.10;
+    }
+
+    if (acceptorElement === "S") {
+      return 3.00;
+    }
+
+    return 2.70;
+  }
+
+  function distanceBetweenAtoms(a, b) {
+    var dx = Number(a.cart[0]) - Number(b.cart[0]);
+    var dy = Number(a.cart[1]) - Number(b.cart[1]);
+    var dz = Number(a.cart[2]) - Number(b.cart[2]);
+
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  function angleDHA(donor, hydrogen, acceptor) {
+    var v1 = [
+      Number(donor.cart[0]) - Number(hydrogen.cart[0]),
+      Number(donor.cart[1]) - Number(hydrogen.cart[1]),
+      Number(donor.cart[2]) - Number(hydrogen.cart[2])
+    ];
+
+    var v2 = [
+      Number(acceptor.cart[0]) - Number(hydrogen.cart[0]),
+      Number(acceptor.cart[1]) - Number(hydrogen.cart[1]),
+      Number(acceptor.cart[2]) - Number(hydrogen.cart[2])
+    ];
+
+    var n1 = Math.sqrt(
+      v1[0] * v1[0] +
+      v1[1] * v1[1] +
+      v1[2] * v1[2]
+    );
+
+    var n2 = Math.sqrt(
+      v2[0] * v2[0] +
+      v2[1] * v2[1] +
+      v2[2] * v2[2]
+    );
+
+    if (n1 < 1e-10 || n2 < 1e-10) {
+      return NaN;
+    }
+
+    var cos =
+      (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2]) /
+      (n1 * n2);
+
+    cos = Math.max(-1, Math.min(1, cos));
+
+    return Math.acos(cos) * 180 / Math.PI;
+  }
+
+  function fragmentBondConnects(fragment, keyA, keyB) {
+    return (fragment.bonds || []).some(function (bond) {
+      return (
+        (bond.atom1Key === keyA && bond.atom2Key === keyB) ||
+        (bond.atom1Key === keyB && bond.atom2Key === keyA)
+      );
+    });
+  }
+
+  function donorForHydrogen(state, hydrogen) {
+    var ortep = ensureState(state);
+    var fragment = ortep.fragment || {};
+
+    if (!hydrogen || hydrogen.element !== "H") {
+      return null;
+    }
+
+    if (hydrogen.attachedToAtomKey) {
+      var attachedDonor = findAtomByKey(fragment, hydrogen.attachedToAtomKey);
+
+      if (
+        attachedDonor &&
+        isHydrogenBondDonorElement(attachedDonor.element)
+      ) {
+        return attachedDonor;
+      }
+    }
+
+    var donor = null;
+
+    (fragment.bonds || []).some(function (bond) {
+      var otherKey = "";
+
+      if (bond.atom1Key === hydrogen.key) {
+        otherKey = bond.atom2Key;
+      } else if (bond.atom2Key === hydrogen.key) {
+        otherKey = bond.atom1Key;
+      } else {
+        return false;
+      }
+
+      var other = findAtomByKey(fragment, otherKey);
+
+      if (
+        other &&
+        other.element !== "H" &&
+        isHydrogenBondDonorElement(other.element)
+      ) {
+        donor = other;
+        return true;
+      }
+
+      return false;
+    });
+
+    return donor;
+  }
+
+  function hbondCandidateKey(candidate) {
+    return [
+      "geom",
+      candidate.hydrogen.key,
+      candidate.acceptor.key
+    ].join("::");
+  }
+
+  function hbondAlreadyAdded(state, key) {
+    var ortep = ensureState(state);
+
+    return (ortep.addedHydrogenBonds || []).some(function (hbond) {
+      return hbond.id === key;
+    });
+  }
+
+  function hbondContactText(candidateOrBond) {
+    var h = candidateOrBond.hydrogen;
+    var a = candidateOrBond.acceptor;
+
+    if (h && a) {
+      return (h.displayLabel || h.label) + "···" + (a.displayLabel || a.label);
+    }
+
+    return (
+      (candidateOrBond.hydrogenLabel || "") +
+      "···" +
+      (candidateOrBond.acceptorDisplayLabel || candidateOrBond.acceptorLabel || "")
+    );
+  }
+
+  function hbondValueText(value) {
+    value = String(value || "").trim();
+    return value || "—";
+  }
+
+  function hbondCandidatesForAtom(state, atom) {
+    var ortep = ensureState(state);
+    var fragment = ortep.fragment || {};
+
+    if (!atom || atom.element !== "H") {
+      return [];
+    }
+
+    var donor = donorForHydrogen(state, atom);
+
+    if (!donor) {
+      return [];
+    }
+
+    var candidates = [];
+
+    (fragment.atoms || []).forEach(function (acceptor) {
+      if (!atomIsVisibleInOrtep(state, acceptor)) {
+        return;
+      }
+
+      if (!isHydrogenBondAcceptorElement(acceptor.element)) {
+        return;
+      }
+
+      if (acceptor.key === atom.key || acceptor.key === donor.key) {
+        return;
+      }
+
+      if (fragmentBondConnects(fragment, donor.key, acceptor.key)) {
+        return;
+      }
+
+      var hA = distanceBetweenAtoms(atom, acceptor);
+      var maxHA = maxHydrogenAcceptorDistance(acceptor.element);
+
+      if (!isFinite(hA) || hA > maxHA) {
+        return;
+      }
+
+      var angle = angleDHA(donor, atom, acceptor);
+
+      if (!isFinite(angle) || angle < 120) {
+        return;
+      }
+
+      var dA = distanceBetweenAtoms(donor, acceptor);
+
+      var candidate = {
+        donor: donor,
+        hydrogen: atom,
+        acceptor: acceptor,
+
+        donorLabel: donor.sourceLabel || donor.label,
+        hydrogenLabel: atom.sourceLabel || atom.label,
+        acceptorLabel: acceptor.sourceLabel || acceptor.label,
+
+        distanceHA: hA.toFixed(2),
+        distanceDA: dA.toFixed(2),
+        angleDHA: angle.toFixed(0),
+
+        numericalDistanceHA: hA,
+        numericalDistanceDA: dA,
+        numericalAngleDHA: angle,
+
+        source: "geometry"
+      };
+
+      candidate.key = hbondCandidateKey(candidate);
+
+      candidates.push(candidate);
+    });
+
+    candidates.sort(function (a, b) {
+      if (a.numericalDistanceHA !== b.numericalDistanceHA) {
+        return a.numericalDistanceHA - b.numericalDistanceHA;
+      }
+
+      if (a.numericalAngleDHA !== b.numericalAngleDHA) {
+        return b.numericalAngleDHA - a.numericalAngleDHA;
+      }
+
+      return hbondContactText(a).localeCompare(hbondContactText(b));
+    });
+
+    return candidates;
+  }
+
+  function makeAddedHydrogenBond(candidate) {
+    return {
+      id: candidate.key,
+
+      donorAtomKey: candidate.donor.key,
+      hydrogenAtomKey: candidate.hydrogen.key,
+      acceptorAtomKey: candidate.acceptor.key,
+
+      donorLabel: candidate.donorLabel,
+      hydrogenLabel: candidate.hydrogenLabel,
+      acceptorLabel: candidate.acceptorLabel,
+      acceptorDisplayLabel: candidate.acceptor.displayLabel || candidate.acceptor.label,
+
+      distanceHA: candidate.distanceHA,
+      distanceDA: candidate.distanceDA,
+      angleDHA: candidate.angleDHA,
+
+      source: "geometry"
+    };
+  }
+
+  function findHydrogenBondCandidateByKey(state, key) {
+    var ortep = ensureState(state);
+    var candidates = [];
+
+    (ortep.fragment && ortep.fragment.atoms || []).forEach(function (atom) {
+      if (atom.element === "H") {
+        candidates = candidates.concat(hbondCandidatesForAtom(state, atom));
+      }
+    });
+
+    return candidates.find(function (candidate) {
+      return candidate.key === key;
+    }) || null;
+  }
+
+  function removeAddedHydrogenBond(state, key) {
+    var ortep = ensureState(state);
+
+    ortep.addedHydrogenBonds = (ortep.addedHydrogenBonds || []).filter(function (hbond) {
+      return hbond.id !== key;
+    });
+  }
+
+  function hydrogenBondCandidatesHtml(state, atom) {
+    var candidates = hbondCandidatesForAtom(state, atom);
+
+    if (!candidates.length) {
+      return (
+        "<div class=\"ortep-hbond-block\">" +
+          "<h4>Hydrogen bonds</h4>" +
+          "<p class=\"hint\">No visible hydrogen-bond acceptors for this H atom.</p>" +
+        "</div>"
+      );
+    }
+
+    var rows = candidates.map(function (candidate) {
+      var isAdded = hbondAlreadyAdded(state, candidate.key);
+
+      return (
+        "<tr>" +
+          "<td>" +
+            (isAdded
+              ? "<button type=\"button\" data-ortep-hbond-remove=\"" + escapeHtml(candidate.key) + "\">Remove</button>"
+              : "<button type=\"button\" data-ortep-hbond-add=\"" + escapeHtml(candidate.key) + "\">Add</button>") +
+          "</td>" +
+          "<td>" + escapeHtml(hbondContactText(candidate)) + "</td>" +
+          "<td class=\"number\">" + escapeHtml(hbondValueText(candidate.distanceHA)) + "</td>" +
+          "<td class=\"number\">" + escapeHtml(hbondValueText(candidate.angleDHA)) + "</td>" +
+        "</tr>"
+      );
+    }).join("");
+
+    return (
+      "<div class=\"ortep-hbond-block\">" +
+        "<h4>Hydrogen bonds</h4>" +
+        "<table class=\"ortep-table\">" +
+          "<thead>" +
+            "<tr>" +
+              "<th>Action</th>" +
+              "<th>Contact</th>" +
+              "<th>d(H···A) /Å</th>" +
+              "<th>Angle /°</th>" +
+            "</tr>" +
+          "</thead>" +
+          "<tbody>" + rows + "</tbody>" +
+        "</table>" +
+      "</div>"
+    );
+  }
   function renderSelectedOverride(state) {
     var ortep = ensureState(state);
     var box = $("ortep-selected-override");
@@ -878,6 +1252,10 @@
           }).join(", ")
         : "";
 
+      var hydrogenBondHtml = atom.element === "H"
+        ? hydrogenBondCandidatesHtml(state, atom)
+        : "";
+
       box.innerHTML =
         "<div><strong>Atom:</strong> " + atomLabelHtml(atom) + "</div>" +
         "<div><strong>Element:</strong> " + escapeHtml(atom.element) + "</div>" +
@@ -885,6 +1263,7 @@
         (attachedHydrogens.length
           ? "<div><strong>Attached H:</strong> " + attachedHydrogenText + "</div>"
           : "") +
+        hydrogenBondHtml +
         "<div class=\"ortep-selected-actions\">" +
           "<label>Show" +
             "<select data-ortep-selected-atom-show=\"" + escapeHtml(atom.key) + "\">" +
@@ -906,6 +1285,27 @@
                 "<button type=\"button\" data-ortep-selected-attached-h-hide=\"" + escapeHtml(atom.key) + "\">Hide attached H</button>" +
               "</div>"
             : "") +
+        "</div>";
+
+      return;
+    }
+
+    if (ortep.selectedItem.type === "hbond") {
+      var selectedHydrogenBond = (ortep.addedHydrogenBonds || []).find(function (hbond) {
+        return hbond.id === ortep.selectedItem.key;
+      });
+
+      if (!selectedHydrogenBond) {
+        box.innerHTML = "Selected hydrogen bond is no longer available.";
+        return;
+      }
+
+      box.innerHTML =
+        "<div><strong>Hydrogen bond:</strong> " + escapeHtml(hbondContactText(selectedHydrogenBond)) + "</div>" +
+        "<div><strong>H···A:</strong> " + escapeHtml(hbondValueText(selectedHydrogenBond.distanceHA)) + " Å</div>" +
+        "<div><strong>D–H···A:</strong> " + escapeHtml(hbondValueText(selectedHydrogenBond.angleDHA)) + "°</div>" +
+        "<div class=\"table-toolbar\">" +
+          "<button type=\"button\" data-ortep-hbond-remove=\"" + escapeHtml(selectedHydrogenBond.id) + "\">Remove</button>" +
         "</div>";
 
       return;
@@ -1120,7 +1520,8 @@
       zeroBondGap: ortep.options.zeroBondGap,
 
       viewState: ortep.viewState,
-      displayOptions: ortep.displayOptions
+      displayOptions: ortep.displayOptions,
+      hydrogenBonds: ortep.addedHydrogenBonds
     });
 
     ortep.liveSvg = svg;
@@ -1175,6 +1576,8 @@
     if (!centerLabel) {
       return;
     }
+
+    ortep.addedHydrogenBonds = [];
 
     var fragment = CIFLord.OrtepSvg.makeBondedComponentForAtom(
       ortep.model,
@@ -1844,6 +2247,41 @@
       var target = event.target;
       var ortep = ensureState(state);
 
+      if (target.matches("[data-ortep-hbond-add]")) {
+        var addKey = target.getAttribute("data-ortep-hbond-add");
+        var candidate = findHydrogenBondCandidateByKey(state, addKey);
+
+        if (!candidate) {
+          return;
+        }
+
+        if (!hbondAlreadyAdded(state, addKey)) {
+          ortep.addedHydrogenBonds.push(makeAddedHydrogenBond(candidate));
+        }
+
+        renderSvgOnly(state);
+        renderSelectedOverride(state);
+        return;
+      }
+
+      if (target.matches("[data-ortep-hbond-remove]")) {
+        var removeKey = target.getAttribute("data-ortep-hbond-remove");
+
+        removeAddedHydrogenBond(state, removeKey);
+
+        if (
+          ortep.selectedItem &&
+          ortep.selectedItem.type === "hbond" &&
+          ortep.selectedItem.key === removeKey
+        ) {
+          ortep.selectedItem = null;
+        }
+
+        renderSvgOnly(state);
+        renderSelectedOverride(state);
+        return;
+      }
+
       if (
         !target.matches("[data-ortep-selected-attached-h-show]") &&
         !target.matches("[data-ortep-selected-attached-h-hide]")
@@ -1899,6 +2337,7 @@
 
         ortep.displayOptions.atomOverrides = {};
         ortep.displayOptions.bondOverrides = {};
+        ortep.addedHydrogenBonds = [];
         ortep.selectedItem = null;
 
         renderSvgOnly(state);
@@ -1974,6 +2413,7 @@
 
       var atomEl = event.target.closest("[data-atom-key]");
       var bondEl = event.target.closest("[data-bond-key]");
+      var hbondEl = event.target.closest("[data-hbond-key]");
 
       var useCommand = event.ctrlKey || event.metaKey;
       var useShift = event.shiftKey;
@@ -2035,6 +2475,29 @@
         return;
       }
 
+      if (hbondEl) {
+        var selectedHydrogenBondKey = hbondEl.getAttribute("data-hbond-key");
+
+        ortep.selectedItem = {
+          type: "hbond",
+          key: selectedHydrogenBondKey
+        };
+
+        if (useCommand) {
+          event.preventDefault();
+
+          removeAddedHydrogenBond(state, selectedHydrogenBondKey);
+          ortep.selectedItem = null;
+
+          renderSvgOnly(state);
+          renderSelectedOverride(state);
+          return;
+        }
+
+        renderSelectedOverride(state);
+        return;
+      }
+
       if (bondEl) {
         var selectedBondKey = bondEl.getAttribute("data-bond-key");
 
@@ -2064,7 +2527,8 @@
     svgBox.addEventListener("contextmenu", function (event) {
       if (
         event.target.closest("[data-atom-key]") ||
-        event.target.closest("[data-bond-key]")
+        event.target.closest("[data-bond-key]") ||
+        event.target.closest("[data-hbond-key]")
       ) {
         event.preventDefault();
       }

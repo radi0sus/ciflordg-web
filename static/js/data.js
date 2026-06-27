@@ -69,6 +69,7 @@
 
         liveSvg: "",
         lastFitScale: null,
+        addedHydrogenBonds: [],
 
         sourceFilename: "",
 
