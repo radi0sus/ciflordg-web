@@ -80,6 +80,7 @@ The current version contains a working browser-only implementation with:
   - show/hide bond angles
   - show/hide calculated geometry parameters
   - show/hide disorder table
+  - show/hide hydrogen-bond table
   - show/hide figure caption
   - middle-atom-only angle filtering
   - SI-style unit labels
@@ -394,6 +395,31 @@ Limitations:
 - Complex or unusual disorder models may require manual editing of the generated table.
 - Manual edits are held in browser memory and are reset when a new CIF is loaded.
 
+## Hydrogen bonds
+
+A hydrogen-bond table is generated from the CIF hydrogen-bond loop where present, using:
+
+- `_geom_hbond_atom_site_label_D`
+- `_geom_hbond_atom_site_label_H`
+- `_geom_hbond_atom_site_label_A`
+- `_geom_hbond_distance_DH`
+- `_geom_hbond_distance_HA`
+- `_geom_hbond_distance_DA`
+- `_geom_hbond_angle_DHA`
+- `_geom_hbond_site_symmetry_A`
+
+The table lists D–H···A distances and angles as provided in the CIF and is not recalculated from atomic coordinates.
+
+Unlike the bond-length and bond-angle tables, the hydrogen-bond table is not affected by the element/atom selection filter, since hydrogen bonds are not tied to a single coordination center. This matches the behaviour of the disorder table.
+
+The hydrogen-bond table can be included in or excluded from the generated report using the global report option.
+
+Limitations:
+
+- The table is only available if a hydrogen-bond loop is present in the CIF.
+- Values are taken as provided in the CIF, not recalculated.
+- No automatic hydrogen-bond search is performed for the report table (see ORTEP Plot for manual hydrogen-bond annotation in the structure plot).
+
 ## Average calculations
 
 The Averages section groups values by element pattern.
@@ -448,6 +474,8 @@ Included geometry-parameter results are exported as a Markdown table.
 
 Included disorder rows are exported as a Markdown table.
 
+Included hydrogen-bond rows are exported as a Markdown table.
+
 ORTEP plots are not included in Markdown export.
 
 ### Plain text
@@ -457,6 +485,8 @@ Plain text export provides a simple fixed-width readable report.
 Included geometry-parameter results are exported as an aligned plain-text table.
 
 Included disorder rows are exported as an aligned plain-text table.
+
+Included hydrogen-bond rows are exported as an aligned plain-text table.
 
 ORTEP plots are not included in plain-text export.
 
@@ -494,7 +524,7 @@ For disorder rows:
 
 Typographic dashes are converted to ASCII hyphens in the CSV output.
 
-Geometry-parameter results and ORTEP plots are not currently included in the CSV export.
+Geometry-parameter results, hydrogen-bond table rows, and ORTEP plots are not currently included in the CSV export.
 
 ## Notes on copy/paste
 
@@ -527,6 +557,7 @@ For word-processor workflows, use the RTF download where possible. ORTEP plots c
 - Disorder handling is pragmatic and may require manual review.
 - Occupancy handling is limited.
 - Hydrogen treatment depends on the data present in the CIF.
+- The hydrogen-bond table is independent of the element/atom selection filter, matching the disorder table behaviour.
 - Geometry-parameter calculations depend on the CIF geometry bond table.
 - CShM calculations are available for coordination numbers 2–6.
 - Geometry-parameter results are not currently included in CSV export.
