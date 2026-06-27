@@ -75,6 +75,10 @@
       ortep.addedHydrogenBonds = [];
     }
 
+    if (!ortep.addedHydrogenBondsByComponent) {
+      ortep.addedHydrogenBondsByComponent = {};
+    }
+
     if (typeof ortep.figureSvg !== "string") {
       ortep.figureSvg = "";
     }
@@ -171,6 +175,7 @@
       figureSvg: "",
       lastFitScale: null,
       addedHydrogenBonds: [],
+      addedHydrogenBondsByComponent: {},
 
       sourceFilename: state.fileName || "",
 
@@ -1011,6 +1016,36 @@
     return donor;
   }
 
+  function currentHydrogenBondStoreKey(state) {
+    var ortep = ensureState(state);
+    return ortep.options.componentId || "__default__";
+  }
+
+  function saveCurrentHydrogenBonds(state) {
+    var ortep = ensureState(state);
+    var key = currentHydrogenBondStoreKey(state);
+
+    ortep.addedHydrogenBondsByComponent[key] =
+      (ortep.addedHydrogenBonds || []).slice();
+  }
+
+  function restoreHydrogenBondsForCurrentComponent(state) {
+    var ortep = ensureState(state);
+    var key = currentHydrogenBondStoreKey(state);
+    var atomMap = {};
+
+    (ortep.fragment && ortep.fragment.atoms || []).forEach(function (atom) {
+      atomMap[atom.key] = true;
+    });
+
+    ortep.addedHydrogenBonds = (ortep.addedHydrogenBondsByComponent[key] || []).filter(function (hbond) {
+      return atomMap[hbond.hydrogenAtomKey] && atomMap[hbond.acceptorAtomKey];
+    });
+
+    ortep.addedHydrogenBondsByComponent[key] =
+      ortep.addedHydrogenBonds.slice();
+  }
+
   function hbondCandidateKey(candidate) {
     return [
       "geom",
@@ -1592,8 +1627,6 @@
       return;
     }
 
-    ortep.addedHydrogenBonds = [];
-
     var fragment = CIFLord.OrtepSvg.makeBondedComponentForAtom(
       ortep.model,
       centerLabel,
@@ -1607,6 +1640,8 @@
     );
 
     ortep.fragment = fragment;
+
+    restoreHydrogenBondsForCurrentComponent(state);
 
     ortep.viewState = CIFLord.OrtepSvg.makeViewState(fragment, {
       probability: ortep.options.probability,
@@ -2071,6 +2106,8 @@
       componentSelect.addEventListener("change", function () {
         var ortep = ensureState(state);
 
+        saveCurrentHydrogenBonds(state);
+
         ortep.options.componentId = this.value || "";
         ortep.selectedItem = null;
 
@@ -2345,6 +2382,7 @@
 
         if (!hbondAlreadyAdded(state, addKey)) {
           ortep.addedHydrogenBonds.push(makeAddedHydrogenBond(candidate));
+          saveCurrentHydrogenBonds(state);
         }
 
         renderSvgOnly(state);
@@ -2356,6 +2394,7 @@
         var removeKey = target.getAttribute("data-ortep-hbond-remove");
 
         removeAddedHydrogenBond(state, removeKey);
+        saveCurrentHydrogenBonds(state);
 
         if (
           ortep.selectedItem &&
@@ -2426,6 +2465,7 @@
         ortep.displayOptions.atomOverrides = {};
         ortep.displayOptions.bondOverrides = {};
         ortep.addedHydrogenBonds = [];
+        saveCurrentHydrogenBonds(state);
         ortep.selectedItem = null;
 
         renderSvgOnly(state);
@@ -2605,6 +2645,7 @@
           event.preventDefault();
 
           removeAddedHydrogenBond(state, selectedHydrogenBondKey);
+          saveCurrentHydrogenBonds(state);
           ortep.selectedItem = null;
 
           renderSvgOnly(state);

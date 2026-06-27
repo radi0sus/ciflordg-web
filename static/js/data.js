@@ -71,6 +71,7 @@
         figureSvg: "",
         lastFitScale: null,
         addedHydrogenBonds: [],
+        addedHydrogenBondsByComponent: {},
 
         sourceFilename: "",
 
