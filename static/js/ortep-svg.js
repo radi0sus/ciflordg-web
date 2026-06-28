@@ -145,6 +145,42 @@
     ];
   }
 
+  function reciprocalLengths(cell) {
+    var a = Number(cell.a);
+    var b = Number(cell.b);
+    var c = Number(cell.c);
+
+    var al = Number(cell.alpha) * Math.PI / 180;
+    var be = Number(cell.beta) * Math.PI / 180;
+    var ga = Number(cell.gamma) * Math.PI / 180;
+
+    var cosA = Math.cos(al);
+    var cosB = Math.cos(be);
+    var cosG = Math.cos(ga);
+    var sinA = Math.sin(al);
+    var sinB = Math.sin(be);
+    var sinG = Math.sin(ga);
+
+    var V = Math.sqrt(
+      1 -
+      cosA * cosA -
+      cosB * cosB -
+      cosG * cosG +
+      2 * cosA * cosB * cosG
+    );
+
+    /*
+      a* = sin(alpha) / (a * V), etc.
+      (V here is the reduced/dimensionless cell volume factor used in
+      orthMatrix, i.e. Vcell = a*b*c*V)
+    */
+    return {
+      astar: sinA / (a * V),
+      bstar: sinB / (b * V),
+      cstar: sinG / (c * V)
+    };
+  }
+
   function fracToCart(M, f) {
     return [
       M[0][0] * f[0] + M[0][1] * f[1] + M[0][2] * f[2],
@@ -584,6 +620,7 @@
       cell: cell,
       M: M,
       basisUnit: unitCellBasis(M),
+      recip: reciprocalLengths(cell),
       atoms: atoms,
       atomByLabel: atomByLabel,
       atomsByLabel: atomsByLabel,
@@ -1914,28 +1951,45 @@
     }
 
     /*
-      Prototype approximation:
-      - Uij are treated as displacement components in the crystallographic basis.
-      - The unit-cell direction basis maps these components into Cartesian view space.
-      - Symmetry rotation is applied in fractional/crystallographic coordinates.
+      U_cif (as stored in the CIF file) is referenced to the direct
+      crystallographic axes a, b, c, but is NOT simply a tensor in a
+      rotated-but-otherwise-Cartesian frame. To convert it to a true
+      Cartesian tensor we must:
 
-      This should be validated against known ORTEP output.
+        1. Scale to the dimensionless fractional-coordinate tensor U*
+           via U* = D U_cif D, with D = diag(a*, b*, c*) (reciprocal
+           cell lengths). This step is what was missing before, and is
+           the reason non-orthogonal (triclinic/monoclinic) cells
+           produced visibly sheared ellipsoids.
+        2. Apply any symmetry rotation in fractional space (valid,
+           since U* is exactly the covariance of the fractional
+           displacement vector).
+        3. Convert to Cartesian using the full orthogonalization
+           matrix M (the same matrix used for atomic positions):
+           U_cart = M U* M^T.
     */
 
     var U = adpToMatrix(atomInstance.adp);
 
+    var D = model.recip;
+    var Ustar = [
+      [U[0][0] * D.astar * D.astar, U[0][1] * D.astar * D.bstar, U[0][2] * D.astar * D.cstar],
+      [U[1][0] * D.bstar * D.astar, U[1][1] * D.bstar * D.bstar, U[1][2] * D.bstar * D.cstar],
+      [U[2][0] * D.cstar * D.astar, U[2][1] * D.cstar * D.bstar, U[2][2] * D.cstar * D.cstar]
+    ];
+
     if (atomInstance.symMatrix) {
-      U = matMul3(
-        matMul3(atomInstance.symMatrix, U),
+      Ustar = matMul3(
+        matMul3(atomInstance.symMatrix, Ustar),
         transpose3(atomInstance.symMatrix)
       );
     }
 
-    var B = model.basisUnit;
+    var M = model.M;
 
     return matMul3(
-      matMul3(B, U),
-      transpose3(B)
+      matMul3(M, Ustar),
+      transpose3(M)
     );
   }
 

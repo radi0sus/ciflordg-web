@@ -183,6 +183,21 @@
       }
 
       if (line.indexOf("data_") === 0) {
+        if (result.dataName) {
+          /*
+            A second data_ block was found. CIFLord only supports a single
+            structure per parse; silently continuing would merge items
+            (e.g. cell parameters) from an unrelated structure into this
+            one. Stop here and warn instead.
+          */
+          result.warnings.push(
+            "Multiple data_ blocks found in this file (stopped at line " +
+            (i + 1) + ", '" + line + "'). Only the first block ('" +
+            result.dataName + "') was parsed."
+          );
+          break;
+        }
+
         result.dataName = line.replace(/^data_/, "").trim();
         i++;
         continue;
