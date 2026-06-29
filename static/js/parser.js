@@ -171,6 +171,23 @@
       rawLines: lines
     };
 
+    var blocks = [];
+    var current = null;
+
+    function startBlock(name) {
+      current = {
+        dataName: name,
+        items: {},
+        loops: [],
+        loopByHeader: {}
+      };
+      blocks.push(current);
+    }
+
+    // Anything before the first data_ line (should not normally happen)
+    // is collected into an implicit unnamed block so nothing is lost.
+    startBlock("");
+
     var i = 0;
 
     while (i < lines.length) {
@@ -183,22 +200,7 @@
       }
 
       if (line.indexOf("data_") === 0) {
-        if (result.dataName) {
-          /*
-            A second data_ block was found. CIFLord only supports a single
-            structure per parse; silently continuing would merge items
-            (e.g. cell parameters) from an unrelated structure into this
-            one. Stop here and warn instead.
-          */
-          result.warnings.push(
-            "Multiple data_ blocks found in this file (stopped at line " +
-            (i + 1) + ", '" + line + "'). Only the first block ('" +
-            result.dataName + "') was parsed."
-          );
-          break;
-        }
-
-        result.dataName = line.replace(/^data_/, "").trim();
+        startBlock(line.replace(/^data_/, "").trim());
         i++;
         continue;
       }
@@ -266,11 +268,15 @@
         var width = headers.length;
 
         if (!width) {
-          result.warnings.push("Empty loop found at line " + (loopStart + 1) + ".");
+          result.warnings.push(
+            "Empty loop found at line " + (loopStart + 1) +
+            " (block '" + current.dataName + "')."
+          );
         } else {
           if (dataTokens.length % width !== 0) {
             result.warnings.push(
               "Loop at line " + (loopStart + 1) +
+              " (block '" + current.dataName + "')" +
               " has " + dataTokens.length +
               " values for " + width +
               " headers. Some trailing values may be ignored."
@@ -282,7 +288,7 @@
           }
         }
 
-        result.loops.push({
+        current.loops.push({
           startLine: loopStart + 1,
           endLine: i,
           headers: headers,
@@ -315,14 +321,56 @@
           }
         }
 
-        result.items[key] = value;
+        current.items[key] = value;
         continue;
       }
 
       i++;
     }
 
-    result.loopByHeader = makeLoopIndex(result.loops);
+    // Drop the implicit leading block if nothing was ever written to it
+    // (the normal case: every real CIF starts with a data_ line).
+    if (blocks.length > 1 &&
+        blocks[0].dataName === "" &&
+        Object.keys(blocks[0].items).length === 0 &&
+        blocks[0].loops.length === 0) {
+      blocks.shift();
+    }
+
+    blocks.forEach(function (block) {
+      block.loopByHeader = makeLoopIndex(block.loops);
+    });
+
+    function looksLikeStructureBlock(block) {
+      var hasCell = !!block.items._cell_length_a;
+      var hasAtoms = !!block.loopByHeader._atom_site_label;
+      return hasCell && hasAtoms;
+    }
+
+    var structureBlocks = blocks.filter(looksLikeStructureBlock);
+    var primary = structureBlocks.length ? structureBlocks[0] : (blocks[0] || null);
+
+    if (blocks.length > 1) {
+      var otherNames = blocks
+        .filter(function (b) { return b !== primary; })
+        .map(function (b) { return "'" + b.dataName + "'"; })
+        .join(", ");
+
+      result.warnings.push(
+        "Multiple data_ blocks found in this file. Using block '" +
+        (primary ? primary.dataName : "") +
+        "'. Other blocks ignored: " + otherNames + "."
+      );
+    }
+
+    if (primary) {
+      result.dataName = primary.dataName;
+      result.items = primary.items;
+      result.loops = primary.loops;
+      result.loopByHeader = primary.loopByHeader;
+    }
+
+    result.blocks = blocks;
 
     if (!result.dataName) {
       result.warnings.push("No data_ block found.");
