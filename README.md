@@ -10,6 +10,8 @@ No local mini server is required.
 
 The application runs fully client-side. CIF files are read locally in the browser and are not uploaded anywhere.
 
+**Live demo (GitHub Pages):** https://radi0sus.github.io/ciflordg-web/
+
 ## Scope
 
 This web version provides the useful analysis, reporting, and visualisation parts of the original desktop application:
