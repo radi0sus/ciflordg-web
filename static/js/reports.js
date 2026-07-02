@@ -812,6 +812,16 @@
 
     var symmetryNotes = CIFLord.Core.usedSymmetryNotes(state, allForSymmetry);
 
+    // Figure captions only ever list bonds/angles/added distances, never
+    // H-bonds. A symmetry code that is used exclusively by an H-bond must
+    // not appear in the figure caption's symmetry sentence, since it does
+    // not actually occur among the values shown in that caption.
+    var figureForSymmetry = mergedBonds
+      .concat(separateAdded)
+      .concat(angles);
+
+    var figureSymmetryNotes = CIFLord.Core.usedSymmetryNotes(state, figureForSymmetry);
+
     var geometryResults = state.reportOptions.showGeometry === false
       ? []
       : (state.geometryResults || []).filter(function (result) {
@@ -830,6 +840,7 @@
       geometryResults: geometryResults,
       disorderRows: disorderRows,
       symmetryNotes: symmetryNotes,
+      figureSymmetryNotes: figureSymmetryNotes,
       ortepFigureSvg: state.ortep && state.ortep.figureSvg
         ? state.ortep.figureSvg
         : ""
@@ -1144,7 +1155,7 @@
         "</strong>.";
     }
 
-    sym = htmlSymmetrySentence(model.symmetryNotes);
+    sym = htmlSymmetrySentence(model.figureSymmetryNotes);
 
     if (sym) {
       body += " " + sym;
@@ -1190,7 +1201,7 @@
       body = "No values selected for **" + model.dataName + "**.";
     }
 
-    sym = markdownSymmetrySentence(model.symmetryNotes);
+    sym = markdownSymmetrySentence(model.figureSymmetryNotes);
 
     if (sym) {
       body += " " + sym;
@@ -2004,8 +2015,8 @@
       out += "Figure x. No values selected for " + model.dataName + ".";
     }
 
-    if (model.symmetryNotes.length) {
-      out += " " + plainSymmetrySentence(model.symmetryNotes).trim();
+    if (model.figureSymmetryNotes.length) {
+      out += " " + plainSymmetrySentence(model.figureSymmetryNotes).trim();
     }
 
     out += "\n";
@@ -2670,7 +2681,7 @@
         "{\\b " + rtfEscape(model.dataName) + "}.";
     }
 
-    var sym = rtfCaptionSymmetrySentence(model.symmetryNotes);
+    var sym = rtfCaptionSymmetrySentence(model.figureSymmetryNotes);
 
     if (sym) {
       out += " " + sym;
