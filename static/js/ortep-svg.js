@@ -1784,7 +1784,13 @@
   function rotateView(view, dx, dy, sensitivity) {
     sensitivity = sensitivity || 0.008;
 
-    var ax = dx * sensitivity;
+    /*
+      screenPoint() mirrors the x-axis (handedness fix), so the same
+      yaw rotation now appears reversed on screen. Negate dx here to
+      keep dragging right feel like it turns the model "right" again.
+      Vertical drag (pitch) is unaffected since screen y was not flipped.
+    */
+    var ax = -dx * sensitivity;
     var ay = dy * sensitivity;
 
     var x = view.x.slice();
@@ -2873,7 +2879,18 @@
       var p = projectPoint(p3, bestView.view, bestView.center);
     
       return {
-        x: screenCenterX + (p.x - bboxCenterX) * scale,
+        /*
+          Handedness fix:
+          (viewX, viewY, viewZ) is a right-handed basis, and the depth
+          convention below defines "toward the viewer" as -viewZ. Combined
+          with the necessary y-flip (SVG y grows downward), an unflipped x
+          would make screen-right x screen-up = +viewZ instead of the
+          required -viewZ, i.e. an odd number of reflections overall.
+          That silently mirrored every chiral structure (bond lengths/
+          angles/ellipsoids stayed correct, only the handedness flipped).
+          Flipping x here restores screen-right x screen-up = -viewZ.
+        */
+        x: screenCenterX - (p.x - bboxCenterX) * scale,
         y: screenCenterY - (p.y - bboxCenterY) * scale,
     
         /*
