@@ -702,6 +702,22 @@
     </section>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <div id="block-picker-overlay" class="modal-overlay hidden">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="block-picker-title">
+        <h2 id="block-picker-title">Multiple structures found</h2>
+        <p class="modal-hint">
+          This file contains several structures. Select which one to load.
+        </p>
+        <div id="block-picker-list" class="block-picker-list"></div>
+        <div class="modal-actions">
+          <div class="modal-actions-right">
+            <button type="button" id="block-picker-cancel">Cancel</button>
+            <button type="button" id="block-picker-confirm">Load selected</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script src="static/js/data.js"></script>

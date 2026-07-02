@@ -1641,7 +1641,91 @@
     });
   }
 
+  // -- Multi-block CIF picker ----------------------------------------------
+  //
+  // A single .cif file can contain several structures (data_ blocks), e.g.
+  // Acta E "sup1" files with one data_global block plus one block per
+  // structure. data_global itself never shows up as a choice (see
+  // Parser.parse -> looksLikeStructureBlock). If more than one real
+  // structure block remains, ask the user which one to load instead of
+  // silently taking the first one.
+
+  function blockPickerEscapeHtml(str) {
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  var blockPicker = {
+    overlay: null,
+    list: null,
+    resolve: null
+  };
+
+  function initBlockPicker() {
+    blockPicker.overlay = $("block-picker-overlay");
+    blockPicker.list = $("block-picker-list");
+
+    if (!blockPicker.overlay || !blockPicker.list) {
+      return;
+    }
+
+    $("block-picker-cancel").addEventListener("click", function () {
+      closeBlockPicker(null);
+    });
+
+    blockPicker.overlay.addEventListener("click", function (e) {
+      if (e.target === blockPicker.overlay) closeBlockPicker(null);
+    });
+  }
+
+  function blockPickerSummary(block) {
+    var formula = block.items._chemical_formula_sum || block.items._chemical_formula_moiety || "";
+    return formula ? formula.replace(/^'|'$/g, "") : "no formula in CIF";
+  }
+
+  // Shows the picker and resolves with the chosen block, or null if the
+  // user cancelled.
+  function askUserToPickBlock(blocks) {
+    return new Promise(function (resolve) {
+      blockPicker.resolve = resolve;
+
+      blockPicker.list.innerHTML = blocks.map(function (block, i) {
+        return (
+          '<label class="block-picker-item">' +
+            '<input type="radio" name="block-picker-choice" value="' + i + '"' + (i === 0 ? " checked" : "") + '>' +
+            '<span class="block-picker-name">' +
+              blockPickerEscapeHtml(block.dataName || ("block " + (i + 1))) +
+            '</span>' +
+            '<span class="block-picker-formula">' +
+              blockPickerEscapeHtml(blockPickerSummary(block)) +
+            '</span>' +
+          '</label>'
+        );
+      }).join("");
+
+      $("block-picker-confirm").onclick = function () {
+        var checked = blockPicker.list.querySelector("input[type=radio]:checked");
+        var chosenIndex = checked ? parseInt(checked.value, 10) : 0;
+        closeBlockPicker(blocks[chosenIndex]);
+      };
+
+      blockPicker.overlay.classList.remove("hidden");
+    });
+  }
+
+  function closeBlockPicker(chosenBlock) {
+    blockPicker.overlay.classList.add("hidden");
+    var resolve = blockPicker.resolve;
+    blockPicker.resolve = null;
+    if (resolve) resolve(chosenBlock);
+  }
+
   function bindFileLoading(state, renderAll) {
+    initBlockPicker();
+
     var fileInput = $("file-input");
 
     function openFileDialog() {
@@ -1678,39 +1762,69 @@
     });
   }
 
+  function finishLoadingCIF(parsed, file, state, renderAll, loadedBlockLabel) {
+    CIFLord.Core.updateStateFromParsedCIF(state, parsed, file.name);
+
+    state.selectionFilter = { element: "all", atom: "all" };
+    state.averageFilter = { element: "all", atom: "all" };
+    state.sortOptions = {
+      bonds: "cif",
+      angles: "cif",
+      addedDistances: "cif"
+    };
+    state.selectionOptions = { independentOnly: false };
+
+    if (!state.reportOptions) {
+      state.reportOptions = {};
+    }
+
+    if (typeof state.reportOptions.middleAtomOnly !== "boolean") {
+      state.reportOptions.middleAtomOnly = true;
+    }
+
+    if (CIFLord.OrtepUI) {
+      CIFLord.OrtepUI.reset(state);
+    }
+
+    activateTab("selection");
+
+    renderAll();
+
+    showToast(
+      loadedBlockLabel
+        ? "Loaded " + file.name + " — block '" + loadedBlockLabel + "'"
+        : "Loaded " + file.name
+    );
+  }
+
   function readFile(file, state, renderAll) {
     var reader = new FileReader();
 
     reader.onload = function () {
       var parsed = CIFLord.Parser.parse(String(reader.result || ""));
+      var structureBlocks = parsed.structureBlocks || [];
 
-      CIFLord.Core.updateStateFromParsedCIF(state, parsed, file.name);
+      if (structureBlocks.length > 1) {
+        // Several structures in this one file: let the user pick which one
+        // to load. The chosen block becomes the primary block, exactly like
+        // the automatic "use the first one" path below, just user-driven.
+        askUserToPickBlock(structureBlocks).then(function (chosenBlock) {
+          if (!chosenBlock) {
+            showToast("Load cancelled");
+            return;
+          }
 
-      state.selectionFilter = { element: "all", atom: "all" };
-      state.averageFilter = { element: "all", atom: "all" };
-      state.sortOptions = {
-        bonds: "cif",
-        angles: "cif",
-        addedDistances: "cif"
-      };
-      state.selectionOptions = { independentOnly: false };
+          parsed.dataName = chosenBlock.dataName;
+          parsed.items = chosenBlock.items;
+          parsed.loops = chosenBlock.loops;
+          parsed.loopByHeader = chosenBlock.loopByHeader;
 
-      if (!state.reportOptions) {
-        state.reportOptions = {};
+          finishLoadingCIF(parsed, file, state, renderAll, chosenBlock.dataName);
+        });
+        return;
       }
 
-      if (typeof state.reportOptions.middleAtomOnly !== "boolean") {
-        state.reportOptions.middleAtomOnly = true;
-      }
-
-      if (CIFLord.OrtepUI) {
-        CIFLord.OrtepUI.reset(state);
-      }
-
-      activateTab("selection");
-
-      renderAll();
-      showToast("Loaded " + file.name);
+      finishLoadingCIF(parsed, file, state, renderAll, null);
     };
 
     reader.readAsText(file);

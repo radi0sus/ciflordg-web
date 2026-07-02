@@ -342,6 +342,13 @@
     });
 
     function looksLikeStructureBlock(block) {
+      // data_global blocks (common in multi-entry CIFs, e.g. Acta E "sup1"
+      // files) carry shared/administrative data, never the atom list for a
+      // specific structure, so they're never a pickable structure block.
+      if (block.dataName.trim().toLowerCase() === "global") {
+        return false;
+      }
+
       var hasCell = !!block.items._cell_length_a;
       var hasAtoms = !!block.loopByHeader._atom_site_label;
       return hasCell && hasAtoms;
@@ -350,7 +357,11 @@
     var structureBlocks = blocks.filter(looksLikeStructureBlock);
     var primary = structureBlocks.length ? structureBlocks[0] : (blocks[0] || null);
 
-    if (blocks.length > 1) {
+    // Only warn about "ignored" blocks here when there's no real choice to
+    // make (0 or 1 structure block found). When there are several structure
+    // blocks, the UI shows a picker instead of silently using the first one,
+    // so no warning is needed at parse time.
+    if (blocks.length > 1 && structureBlocks.length <= 1) {
       var otherNames = blocks
         .filter(function (b) { return b !== primary; })
         .map(function (b) { return "'" + b.dataName + "'"; })
@@ -371,6 +382,7 @@
     }
 
     result.blocks = blocks;
+    result.structureBlocks = structureBlocks;
 
     if (!result.dataName) {
       result.warnings.push("No data_ block found.");

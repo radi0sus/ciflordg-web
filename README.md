@@ -17,6 +17,7 @@ The application runs fully client-side. CIF files are read locally in the browse
 This web version provides the useful analysis, reporting, and visualisation parts of the original desktop application:
 
 - CIF loading by file picker or drag and drop
+- Structure picker for CIF files containing several structures (multiple `data_` blocks), with formula preview per structure
 - CIF parsing of data items and `loop_` blocks
 - Extraction of atom sites
 - Extraction of symmetry operations
@@ -65,6 +66,7 @@ The current version contains a working browser-only implementation with:
 - Responsive web UI
 - Light/dark mode support via system preference
 - File loading by button or drag and drop
+- Multi-structure CIF picker for files with several `data_` blocks (`data_global` is ignored automatically; the picker only appears when more than one structure block is found)
 - CIF parser for basic data items and loops
 - Atom site extraction
 - Unit-cell extraction
@@ -150,6 +152,7 @@ The current version contains a working browser-only implementation with:
 The parser currently supports the CIF features needed for the reporting and ORTEP workflows:
 
 - `data_` blocks
+- detection of multiple structure blocks within one file (files with more than one block containing both a unit cell and an atom-site loop trigger the structure picker; a `data_global` block is never treated as a selectable structure)
 - simple data items
 - quoted values
 - semicolon-delimited multiline values
@@ -555,7 +558,7 @@ For word-processor workflows, use the RTF download where possible. ORTEP plots c
 ## Known limitations
 
 - The CIF parser is pragmatic, not a full CIF validator.
-- Multiple data blocks are not handled as separate selectable structures.
+- Only one structure block can be loaded at a time; combining data from several blocks of the same file is not supported.
 - Disorder handling is pragmatic and may require manual review.
 - Occupancy handling is limited.
 - Hydrogen treatment depends on the data present in the CIF.
