@@ -3994,9 +3994,10 @@
 
       var override = bondOverrideFor(bond);
       var bondDashed = override.style === "dashed";
-      var bondDashArray = bondDashed
-        ? (bondWidth * 3.5).toFixed(2) + " " + (bondWidth * 3.0).toFixed(2)
-        : "";
+//      var bondDashArray = bondDashed
+//        ? (bondWidth * 3.5).toFixed(2) + " " + (bondWidth * 3.0).toFixed(2)
+//        : "";
+      var bondDashArray = "";
       var bondLineCap = bondDashed ? "butt" : "round";
 
       var paCenter = screenPoint(a.cart);
@@ -4049,6 +4050,20 @@
       */
       if (Math.sqrt(clippedDx * clippedDx + clippedDy * clippedDy) < 1.0) {
         return;
+      }
+
+      if (bondDashed) {
+        var dashUnit = bondWidth * 3.5;
+        var gapUnit = bondWidth * 3.0;
+        var segmentLen = dashUnit + gapUnit;
+        var coreLen = Math.sqrt(clippedDx * clippedDx + clippedDy * clippedDy);
+        var dashRepeats = Math.max(4, Math.round(coreLen / segmentLen));
+        var dashScale = (coreLen / dashRepeats) / segmentLen;
+      
+        bondDashArray =
+          (dashUnit * dashScale).toFixed(2) +
+          " " +
+          (gapUnit * dashScale).toFixed(2);
       }
 
       var x1 = paCore.x.toFixed(2);
