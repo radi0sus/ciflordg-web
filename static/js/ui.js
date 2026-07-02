@@ -1276,7 +1276,7 @@
     }
   
     if (typeof state.reportOptions.siUnits !== "boolean") {
-      state.reportOptions.siUnits = true;
+      state.reportOptions.siUnits = false;
     }
   
     if (typeof state.reportOptions.middleAtomOnly !== "boolean") {
@@ -1874,7 +1874,7 @@
       }
       
       if (typeof state.reportOptions.siUnits !== "boolean") {
-        state.reportOptions.siUnits = true;
+        state.reportOptions.siUnits = false;
       }
       
       if (typeof state.reportOptions.middleAtomOnly !== "boolean") {

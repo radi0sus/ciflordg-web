@@ -2835,8 +2835,6 @@
     if (zeroBondGap) {
       bondAtomGap = 0;
       bondHaloWidth = 0;
-    } else if (bondShadows) {
-      bondAtomGap = Math.max(0, Math.min(bondAtomGap, 0.8));
     } else {
       bondAtomGap = -Math.max(0.6, bondWidth * 0.35);
     }
@@ -4022,7 +4020,7 @@
       var haloGap = bondHaloWidth > 0
         ? Math.max(0, bondHaloWidth * 0.15)
         : coreGap;
-      var shadowGap = coreGap;
+      var shadowGap = haloGap;
 
       if (zeroBondGap) {
         coreGap = 0;
@@ -4150,7 +4148,7 @@
             (pbShadow.y + bondShadowDy).toFixed(2),
             bondShadowColor,
             bondShadowWidth,
-            bondLineCap,
+            "butt",
             ""
           );
 

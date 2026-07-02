@@ -23,7 +23,7 @@
         showDisorder: true,
         showCaption: true,
 
-        siUnits: true,
+        siUnits: false,
         addedDisplay: "separate",
         middleAtomOnly: true
       },
