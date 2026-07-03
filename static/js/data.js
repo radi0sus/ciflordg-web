@@ -99,11 +99,13 @@
           zeroBondGap: false,
 
           showHydrogen: false,
+          showHeteroatomHydrogen: true,
           addMissingHydrogenAtoms: true
         },
 
         displayOptions: {
           showHydrogen: true,
+          showHeteroatomHydrogen: true,
           labelCarbon: false,
           labelHydrogen: false,
           atomOverrides: {},

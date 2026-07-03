@@ -155,6 +155,10 @@
       ortep.options.showHydrogen = false;
     }
 
+    if (typeof ortep.options.showHeteroatomHydrogen !== "boolean") {
+      ortep.options.showHeteroatomHydrogen = true;
+    }
+
     if (typeof ortep.options.addMissingHydrogenAtoms !== "boolean") {
       ortep.options.addMissingHydrogenAtoms = true;
     }
@@ -202,11 +206,13 @@
         zeroBondGap: false,
 
         showHydrogen: false,
+        showHeteroatomHydrogen: true,
         addMissingHydrogenAtoms: true
       },
 
       displayOptions: {
         showHydrogen: true,
+        showHeteroatomHydrogen: true,
         labelCarbon: false,
         labelHydrogen: false,
         atomOverrides: {},
@@ -602,6 +608,7 @@
     setChecked("ortep-opt-show-backfaces", options.showBackfaces);
     setChecked("ortep-opt-two-colored-bonds", options.twoColoredBonds);
     setChecked("ortep-opt-show-h", options.showHydrogen);
+    setChecked("ortep-opt-show-heteroatom-h", options.showHeteroatomHydrogen);
     setChecked("ortep-opt-bond-shadows", options.bondShadows);
     setChecked("ortep-opt-zero-bond-gap", options.zeroBondGap);
     setChecked("ortep-opt-add-missing-h", options.addMissingHydrogenAtoms);
@@ -663,11 +670,15 @@
     options.showHydrogen = $("ortep-opt-show-h")
       ? $("ortep-opt-show-h").checked
       : false;
+    options.showHeteroatomHydrogen = $("ortep-opt-show-heteroatom-h")
+      ? $("ortep-opt-show-heteroatom-h").checked
+      : false;
     options.addMissingHydrogenAtoms = $("ortep-opt-add-missing-h")
       ? $("ortep-opt-add-missing-h").checked
       : true;
 
     ortep.displayOptions.showHydrogen = options.showHydrogen;
+    ortep.displayOptions.showHeteroatomHydrogen = options.showHeteroatomHydrogen;
     ortep.displayOptions.labelCarbon = options.labelCarbon;
     ortep.displayOptions.labelHydrogen = options.labelHydrogen;
 
@@ -861,6 +872,35 @@
     });
   }
 
+  function isHydrogenBondedToCarbon(fragment, atom) {
+    if (!fragment || !atom) {
+      return false;
+    }
+
+    var bonds = fragment.bonds || [];
+    var atomsByKey = {};
+
+    (fragment.atoms || []).forEach(function (candidate) {
+      atomsByKey[candidate.key] = candidate;
+    });
+
+    return bonds.some(function (bond) {
+      var otherKey = null;
+
+      if (bond.atom1Key === atom.key) {
+        otherKey = bond.atom2Key;
+      } else if (bond.atom2Key === atom.key) {
+        otherKey = bond.atom1Key;
+      } else {
+        return false;
+      }
+
+      var other = atomsByKey[otherKey];
+
+      return !!other && other.element === "C";
+    });
+  }
+
   function atomIsVisibleInOrtep(state, atom) {
     var ortep = ensureState(state);
     var override = ortep.displayOptions.atomOverrides[atom.key] || {};
@@ -874,6 +914,13 @@
     }
 
     if (atom.element === "H" && ortep.displayOptions.showHydrogen === false) {
+      if (
+        ortep.displayOptions.showHeteroatomHydrogen &&
+        !isHydrogenBondedToCarbon(ortep.fragment, atom)
+      ) {
+        return true;
+      }
+
       return false;
     }
 
@@ -2125,6 +2172,7 @@
       "ortep-opt-bond-shadows",
       "ortep-opt-zero-bond-gap",
       "ortep-opt-show-h",
+      "ortep-opt-show-heteroatom-h",
       "ortep-opt-label-c",
       "ortep-opt-label-h"
     ].forEach(function (id) {

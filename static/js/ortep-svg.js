@@ -2583,6 +2583,31 @@
     var allAtoms = fragment.atoms || [];
     var allBonds = fragment.bonds || [];
 
+    var atomElementByKey = {};
+
+    allAtoms.forEach(function (a) {
+      atomElementByKey[a.key] = a.element;
+    });
+
+    var hydrogenBondedToCarbon = {};
+
+    allBonds.forEach(function (bond) {
+      var el1 = atomElementByKey[bond.atom1Key];
+      var el2 = atomElementByKey[bond.atom2Key];
+
+      if (el1 === "H" && el2 === "C") {
+        hydrogenBondedToCarbon[bond.atom1Key] = true;
+      }
+
+      if (el2 === "H" && el1 === "C") {
+        hydrogenBondedToCarbon[bond.atom2Key] = true;
+      }
+    });
+
+    function isHeteroatomHydrogen(atom) {
+      return atom.element === "H" && !hydrogenBondedToCarbon[atom.key];
+    }
+
     function atomOverrideFor(atom) {
       return atomOverrides[atom.key] || {};
     }
@@ -2618,6 +2643,10 @@
       }
 
       if (atom.element === "H" && displayOptions.showHydrogen === false) {
+        if (displayOptions.showHeteroatomHydrogen && isHeteroatomHydrogen(atom)) {
+          return true;
+        }
+
         return false;
       }
 
