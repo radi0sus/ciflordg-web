@@ -610,7 +610,7 @@
     setChecked("ortep-opt-show-h", options.showHydrogen);
     setChecked("ortep-opt-show-heteroatom-h", options.showHeteroatomHydrogen);
     setChecked("ortep-opt-bond-shadows", options.bondShadows);
-    setChecked("ortep-opt-zero-bond-gap", options.zeroBondGap);
+    setChecked("ortep-opt-zero-bond-gap", !options.zeroBondGap);
     setChecked("ortep-opt-add-missing-h", options.addMissingHydrogenAtoms);
 
     var projectionScale = $("ortep-input-projection-scale");
@@ -665,7 +665,7 @@
       ? $("ortep-opt-bond-shadows").checked
       : true;
     options.zeroBondGap = $("ortep-opt-zero-bond-gap")
-      ? $("ortep-opt-zero-bond-gap").checked
+      ? !$("ortep-opt-zero-bond-gap").checked
       : false;
     options.showHydrogen = $("ortep-opt-show-h")
       ? $("ortep-opt-show-h").checked
