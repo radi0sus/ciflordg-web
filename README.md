@@ -125,7 +125,7 @@ The current version contains a working browser-only implementation with:
   - fixed or automatic drawing scale
   - separate bond-width and ORTEP-line-width controls
   - label-size controls
-  - bond display options including two-colored bonds, bond shadows, and zero bond gap
+  - bond display options including two-colored bonds, bond shadows, and a bond halo toggle
   - optional hydrogen display
   - optional addition of coordinate hydrogen atoms missing from CIF geometry bonds
   - manual atom and bond visibility overrides
@@ -277,11 +277,11 @@ The ORTEP Plot tab supports:
 - separate control of bond width and ORTEP ellipsoid line width
 - label display and label-size controls
 - optional carbon and hydrogen labels
-- optional hydrogen atom display
+- optional hydrogen atom display (all, heteroatom-only, or hidden)
 - optional addition of coordinate hydrogen atoms missing from CIF geometry bonds
 - two-colored bond drawing
 - optional bond shadows
-- zero bond gap mode for a cleaner direct bond-to-ellipsoid appearance
+- bond halo toggle 
 - manual atom visibility overrides
 - manual atom label overrides
 - manual bond visibility overrides
