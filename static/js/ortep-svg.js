@@ -2956,30 +2956,75 @@
         "\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>";
     }
 
-    function ringPolylineSvg(points, stroke, strokeWidth, centerZ, renderBackfaces) {
+    function ringPolylineSvg(points, stroke, strokeWidth, ringGeometry, renderBackfaces) {
       if (renderBackfaces) {
         return polyline(points, stroke, strokeWidth);
       }
 
       /*
-        Hide rear half of each ORTEP ring.
+        Hide the back-facing half of each ORTEP principal-section ring.
 
-        screenPoint(...).z uses the same projected z convention as sorting:
-        smaller z = closer to viewer.
+        Previously this compared each ring point's projected depth to the
+        atom center's projected depth (point.z <= atomCenter.z). That test
+        only coincides with true front/back visibility for a sphere. For a
+        genuinely anisotropic ellipsoid, the occluding contour (where the
+        ring passes from the near surface to the far surface) is where the
+        ellipsoid's own surface normal is perpendicular to the view
+        direction -- not where the ring crosses the atom center's depth
+        plane. Large / elongated ellipsoids viewed off-axis show a visible
+        gap between the two, so some inner ring arcs were dropped/kept
+        incorrectly (large ellipsoids rendering with broken rings in
+        default, non-backface mode).
 
-        Therefore visible/front ring points satisfy:
-        point.z <= atomCenter.z
+        Fix: test visibility using the local surface normal instead of
+        depth. A ring is built as:
+          P(t) = center + axisA * cos(t) + axisB * sin(t)
+        Because axisA and axisB are orthogonal ellipsoid principal axes,
+        the outward surface normal at P(t) is proportional to:
+          cos(t) / |axisA|^2 * axisA + sin(t) / |axisB|^2 * axisB
+        which can be recovered from any ring point P directly, without
+        needing t, since axisA _|_ axisB:
+          dA = dot(P - center, axisA)
+          dB = dot(P - center, axisB)
+          normal ~ (dA / |axisA|^4) * axisA + (dB / |axisB|^4) * axisB
+        The point is front-facing (visible) when this normal points
+        toward the viewer, i.e. dot(normal, viewDir) < 0 (matches the
+        "toward viewer = -viewZ" convention used in screenPoint()).
       */
 
+      var center = ringGeometry.center;
+      var axisA = ringGeometry.axisA;
+      var axisB = ringGeometry.axisB;
+      var viewDir = ringGeometry.viewDir;
+
+      var aA4 = Math.pow(dot3(axisA, axisA), 2);
+      var aB4 = Math.pow(dot3(axisB, axisB), 2);
+
+      function visibility(p3) {
+        var rel = sub3(p3, center);
+        var dA = dot3(rel, axisA);
+        var dB = dot3(rel, axisB);
+
+        var normal = add3(
+          scale3(axisA, dA / aA4),
+          scale3(axisB, dB / aB4)
+        );
+
+        // Positive = front-facing / visible.
+        return -dot3(normal, viewDir);
+      }
+
       var projected = points.map(function (p) {
-        return screenPoint(p);
+        var s = screenPoint(p);
+        s.vis = visibility(p);
+        return s;
       });
 
       var out = "";
       var segment = [];
 
       function isFront(p) {
-        return p.z <= centerZ + 1e-7;
+        return p.vis >= -1e-9;
       }
 
       function addPoint(seg, p) {
@@ -3014,17 +3059,17 @@
         }
 
         /*
-          If segment crosses the front/back boundary,
-          add an interpolated point exactly at z = centerZ.
+          If segment crosses the front/back visibility boundary,
+          add an interpolated point exactly at the zero crossing
+          of the visibility metric.
         */
-        if (af !== bf && Math.abs(b.z - a.z) > 1e-9) {
-          var t = (centerZ - a.z) / (b.z - a.z);
+        if (af !== bf && Math.abs(b.vis - a.vis) > 1e-12) {
+          var t = a.vis / (a.vis - b.vis);
 
           if (t >= 0 && t <= 1) {
             var mid = {
               x: a.x + (b.x - a.x) * t,
-              y: a.y + (b.y - a.y) * t,
-              z: centerZ
+              y: a.y + (b.y - a.y) * t
             };
 
             addPoint(segment, mid);
@@ -3038,8 +3083,7 @@
             if (t >= 0 && t <= 1) {
               addPoint(segment, {
                 x: a.x + (b.x - a.x) * t,
-                y: a.y + (b.y - a.y) * t,
-                z: centerZ
+                y: a.y + (b.y - a.y) * t
               });
             }
           }
@@ -4316,7 +4360,13 @@
         var ringSvg = "";
 
         if (style.showRings !== false) {
-          ringSvg = rings.map(function (ring) {
+          var ringAxisPairs = [
+            [axes[0], axes[1]],
+            [axes[0], axes[2]],
+            [axes[1], axes[2]]
+          ];
+
+          ringSvg = rings.map(function (ring, ringIndex) {
             return ringPolylineSvg(
               ring,
               color,
@@ -4325,7 +4375,12 @@
                 : (style.ellipsoidWidth
                     ? style.ellipsoidWidth * finalOrtepLineScale
                     : ellipsoidLineWidth),
-              centerProjected.z,
+              {
+                center: atom.cart,
+                axisA: ringAxisPairs[ringIndex][0],
+                axisB: ringAxisPairs[ringIndex][1],
+                viewDir: bestView.view.z
+              },
               showBackfaces
             );
           }).join("");
