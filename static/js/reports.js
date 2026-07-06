@@ -535,6 +535,7 @@
     var wrAll = getItem(state, ["_refine_ls_wR_factor_ref"]);
     var diffMin = getItem(state, ["_refine_diff_density_min"]);
     var diffMax = getItem(state, ["_refine_diff_density_max"]);
+    var flack = getItem(state, ["_refine_ls_abs_structure_Flack"]);
     var tMin = getItem(state, [
       "_exptl_absorpt_correction_T_min",
       "_exptl_transmission_factor_min",
@@ -632,6 +633,10 @@
     if (rAll || wrAll) {
       var rallText = (rAll || "?") + " / " + (wrAll || "?");
       add("<i>R</i>1, <i>wR</i>2 (all data)", escapeHtml(rallText), "R1, wR2 (all data)", rallText);
+    }
+
+    if (flack) {
+      add("abs. struct. param.", escapeHtml(typographicMinus(flack)), "abs. struct. param.", typographicMinus(flack));
     }
 
     if (diffMin || diffMax) {
