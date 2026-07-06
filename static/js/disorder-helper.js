@@ -3,7 +3,7 @@
 
   window.CIFLord = window.CIFLord || {};
 
-  var RESTR = ["SADI", "RIGU", "SIMU", "DELU", "ISOR", "DFIX"];
+  var RESTR = ["SADI", "RIGU", "SIMU", "DELU", "ISOR", "DFIX", "FLAT", "BUMP", "DANG"];
   var CONSTR = ["EADP"];
   var SPECIAL = ["SAME"];
 
@@ -116,6 +116,16 @@
     return tokens.some(function (token) {
       return token === atomLabel;
     });
+  }
+
+  // Bare global commands (e.g. a lone "BUMP") never carry atom labels -
+  // they are switches for the whole refinement - so they should apply to
+  // every disordered atom rather than none.
+  function lineAppliesToAtom(line, atomLabel) {
+    if (lineContainsAtom(line, atomLabel)) return true;
+
+    var tokens = String(line || "").trim().split(/\s+/);
+    return tokens.length === 1;
   }
 
   function unique(array) {
@@ -337,7 +347,7 @@
 
     disorderSites.forEach(function (atom) {
       allRestraints.forEach(function (line) {
-        if (lineContainsAtom(line, atom.label)) {
+        if (lineAppliesToAtom(line, atom.label)) {
           atomRestraints[atom.label].push(line);
         }
       });
