@@ -170,8 +170,8 @@
       return axis + toSubscript(screw);
     });
 
-    sg = sg.replace(/[A-Za-z]/g, function (letter) {
-      return "<i>" + letter + "</i>";
+    sg = sg.replace(/[A-Za-z]+/g, function (letters) {
+      return "<i>" + letters + "</i>";
     });
 
     if (itNumber) {
