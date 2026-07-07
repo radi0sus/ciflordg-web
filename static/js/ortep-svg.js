@@ -1943,6 +1943,29 @@
     90: 6.25139
   };
 
+  /*
+    Shared (non-closure) version of the isotropic-sphere-radius helper.
+    Used by makeViewState() and collectDrawingPoints(), which run outside
+    makeSvg()'s scope and so need probability/ellipsoidScale passed in
+    explicitly rather than picked up from a shared closure variable.
+  */
+  function isotropicSphereRadiusAngstrom(atom, probability, ellipsoidScale) {
+    if (!atom || atom.element === "H") {
+      return null;
+    }
+
+    var uiso = atom.uiso;
+
+    if (!isFinite(uiso) || uiso <= 0) {
+      return null;
+    }
+
+    var s = Math.sqrt(probabilityChiSquare3[probability] || probabilityChiSquare3[50]);
+    s *= ellipsoidScale || 1;
+
+    return s * Math.sqrt(uiso);
+  }
+
   function adpToMatrix(adp) {
     return [
       [adp.u11, adp.u12, adp.u13],
@@ -2229,6 +2252,12 @@
       var axes = ellipsoidAxes(model, atom, probability, ellipsoidScale);
 
       if (!axes) {
+        var isoR = isotropicSphereRadiusAngstrom(atom, probability, ellipsoidScale);
+
+        if (isoR != null) {
+          return isoR;
+        }
+
         return atom.element === "H" ? 0.08 : 0.14;
       }
 
@@ -2417,6 +2446,18 @@
       points.push(atom.cart);
 
       var axes = ellipsoidAxes(model, atom, probability, visualScale);
+
+      if (!axes) {
+        var isoR = isotropicSphereRadiusAngstrom(atom, probability, visualScale);
+
+        if (isoR != null) {
+          axes = [
+            [isoR, 0, 0],
+            [0, isoR, 0],
+            [0, 0, isoR]
+          ];
+        }
+      }
 
       if (axes) {
         /*
@@ -3145,7 +3186,7 @@
     
     function makeAtomHitSvg(atom, centerProjected) {
       var style = styleForElement(atom.element);
-      var r = Math.max(12, (style.fallbackRadius || 0.14) * scale * 1.4);
+      var r = Math.max(12, fallbackAtomRadiusAngstrom(atom, style) * scale * 1.4);
     
       return "<circle " +
         "data-atom-key=\"" + escapeXml(atom.key) + "\" " +
@@ -3193,10 +3234,54 @@
     var axesCache = {};
     var projectedHullCache = {};
 
+    /*
+      For atoms without an anisotropic tensor (no _atom_site_aniso_* rows)
+      that were nevertheless refined isotropically, _atom_site_U_iso_or_equiv
+      already gives a proper thermal-displacement magnitude. Rather than
+      drawing every such atom with the same fixed fallbackRadius, derive an
+      isotropic "sphere radius" from U_iso using the same probability-level
+      scaling as the anisotropic ellipsoid axes (radius = scale * sqrt(U)).
+      Hydrogen atoms are excluded and keep the old fixed-radius behavior.
+    */
+    function isoDisplayRadiusAngstrom(atom) {
+      return isotropicSphereRadiusAngstrom(atom, probability, ellipsoidScale);
+    }
+
+    function fallbackAtomRadiusAngstrom(atom, style) {
+      var isoR = isoDisplayRadiusAngstrom(atom);
+
+      if (isoR != null) {
+        return isoR;
+      }
+
+      return style.fallbackRadius || 0.14;
+    }
+
     function getAxesForAtom(atom) {
       if (!Object.prototype.hasOwnProperty.call(axesCache, atom.key)) {
-        axesCache[atom.key] =
-          ellipsoidAxes(model, atom, probability, ellipsoidScale) || null;
+        var axes = ellipsoidAxes(model, atom, probability, ellipsoidScale);
+
+        if (!axes) {
+          /*
+            No anisotropic tensor, but a proper U_iso is available for a
+            non-hydrogen atom: treat it as a perfectly round "ellipsoid"
+            (all three axes equal) so it gets the same filled-sphere +
+            octant ring-line rendering as a genuine ADP, rather than a
+            flat 2D fallback circle. Any orthonormal basis gives the same
+            projected silhouette for a sphere, so the world axes work.
+          */
+          var isoR = isoDisplayRadiusAngstrom(atom);
+
+          if (isoR != null) {
+            axes = [
+              [isoR, 0, 0],
+              [0, isoR, 0],
+              [0, 0, isoR]
+            ];
+          }
+        }
+
+        axesCache[atom.key] = axes || null;
       }
 
       return axesCache[atom.key];
@@ -3327,7 +3412,7 @@
         Fallback isotropic/no-ADP atom: clip against projected circle.
       */
       var style = styleForElement(atom.element);
-      var r = (style.fallbackRadius || 0.14) * scale;
+      var r = fallbackAtomRadiusAngstrom(atom, style) * scale;
       var dx = otherPoint.x - centerPoint.x;
       var dy = otherPoint.y - centerPoint.y;
       var d = Math.sqrt(dx * dx + dy * dy);
@@ -3451,7 +3536,7 @@
       }
 
       var style = styleForElement(atom.element);
-      var r = (style.fallbackRadius || 0.14) * scale;
+      var r = fallbackAtomRadiusAngstrom(atom, style) * scale;
 
       var rr = Math.max(1, r + labelAtomClearance);
       
@@ -4394,7 +4479,7 @@
             ringSvg
         });
       } else {
-        var r = (style.fallbackRadius || 0.14) * scale;
+        var r = fallbackAtomRadiusAngstrom(atom, style) * scale;
 
         drawItems.push({
           layer: 10,
