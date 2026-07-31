@@ -1637,6 +1637,8 @@
     var copyPngButton = $("ortep-btn-copy-png");
     var pngButton = $("ortep-btn-download-png");
     var svgButton = $("ortep-btn-download-svg");
+    var copyXyzButton = $("ortep-btn-copy-xyz");
+    var xyzButton = $("ortep-btn-download-xyz");
 
     if (useAsFigureButton) {
       useAsFigureButton.disabled = !ortep.liveSvg;
@@ -1656,6 +1658,14 @@
 
     if (svgButton) {
       svgButton.disabled = false;
+    }
+
+    if (copyXyzButton) {
+      copyXyzButton.disabled = false;
+    }
+
+    if (xyzButton) {
+      xyzButton.disabled = false;
     }
   }
 
@@ -1775,6 +1785,8 @@
       var copyPngButton = $("ortep-btn-copy-png");
       var pngButton = $("ortep-btn-download-png");
       var svgButton = $("ortep-btn-download-svg");
+      var copyXyzButton = $("ortep-btn-copy-xyz");
+      var xyzButton = $("ortep-btn-download-xyz");
 
       if (useAsFigureButton) {
         useAsFigureButton.disabled = true;
@@ -1794,6 +1806,14 @@
 
       if (svgButton) {
         svgButton.disabled = true;
+      }
+
+      if (copyXyzButton) {
+        copyXyzButton.disabled = true;
+      }
+
+      if (xyzButton) {
+        xyzButton.disabled = true;
       }
 
       return;
@@ -1824,6 +1844,8 @@
     var copyPngButton = $("ortep-btn-copy-png");
     var pngButton = $("ortep-btn-download-png");
     var svgButton = $("ortep-btn-download-svg");
+    var copyXyzButton = $("ortep-btn-copy-xyz");
+    var xyzButton = $("ortep-btn-download-xyz");
     var enabled = !!ortep.liveSvg;
 
     if (useAsFigureButton) {
@@ -1844,6 +1866,14 @@
 
     if (svgButton) {
       svgButton.disabled = !enabled;
+    }
+
+    if (copyXyzButton) {
+      copyXyzButton.disabled = !enabled;
+    }
+
+    if (xyzButton) {
+      xyzButton.disabled = !enabled;
     }
   }
 
@@ -1935,7 +1965,7 @@
       "component_" +
       component.index +
       "_" +
-      componentFormulaText(component).replace(/\s+/g, "_")
+      componentFormulaText(component).replace(/\s+/g, "")
     );
   }
 
@@ -1948,6 +1978,131 @@
     }
 
     return base + "_ortep";
+  }
+
+  function currentXyzExportBaseName(state) {
+    var base = safeFilenamePart(filenameBase(state.fileName || "ortep"));
+    var componentPart = currentComponentFilenamePart(state);
+
+    if (componentPart) {
+      return base + "_" + componentPart;
+    }
+
+    return base;
+  }
+
+  /*
+    XYZ export.
+
+    WYSIWYG: only atoms currently visible in the ORTEP plot
+    (atomIsVisibleInOrtep) are exported — same atoms, manual
+    overrides, and disorder choices as shown on screen.
+
+    Coordinates are re-centered on the geometric centroid of the
+    exported atoms (unweighted mean of x, y, z) so the molecule sits
+    near the origin, and atoms are sorted by descending atomic number
+    (hydrogen last) with a stable sort so same-element atoms keep
+    their original order. No atom labels are written, matching plain
+    XMol .xyz format.
+  */
+  function formatXyzFixed(value) {
+    var fixed = value.toFixed(8);
+
+    return fixed.length < 12 ? " ".repeat(12 - fixed.length) + fixed : fixed;
+  }
+
+  function exportableOrtepAtoms(state) {
+    var ortep = ensureState(state);
+    var fragment = ortep.fragment;
+
+    if (!fragment || !fragment.atoms) {
+      return [];
+    }
+
+    return fragment.atoms.filter(function (atom) {
+      return atomIsVisibleInOrtep(state, atom);
+    });
+  }
+
+  function buildXyzExportText(state) {
+    var atoms = exportableOrtepAtoms(state);
+
+    if (!atoms.length) {
+      return "";
+    }
+
+    var centroid = [0, 0, 0];
+
+    atoms.forEach(function (atom) {
+      centroid[0] += atom.cart[0];
+      centroid[1] += atom.cart[1];
+      centroid[2] += atom.cart[2];
+    });
+
+    centroid[0] /= atoms.length;
+    centroid[1] /= atoms.length;
+    centroid[2] /= atoms.length;
+
+    /*
+      Stable sort (guaranteed by the JS spec): atoms of the same
+      element keep their original relative order.
+    */
+    var sorted = atoms.slice().sort(function (a, b) {
+      return atomicNumber(b.element) - atomicNumber(a.element);
+    });
+
+    var lines = [String(sorted.length), currentXyzExportBaseName(state) + " - exported from ORTEP plot, centroid at origin"];
+
+    sorted.forEach(function (atom) {
+      var x = atom.cart[0] - centroid[0];
+      var y = atom.cart[1] - centroid[1];
+      var z = atom.cart[2] - centroid[2];
+
+      lines.push(
+        atom.element.padEnd(2) +
+        "  " + formatXyzFixed(x) +
+        "  " + formatXyzFixed(y) +
+        "  " + formatXyzFixed(z)
+      );
+    });
+
+    return lines.join("\n") + "\n";
+  }
+
+  function downloadXyzExport(state) {
+    var text = buildXyzExportText(state);
+
+    if (!text) {
+      return;
+    }
+
+    var blob = new Blob([text], { type: "chemical/x-xyz;charset=utf-8" });
+
+    downloadBlob(currentXyzExportBaseName(state) + ".xyz", blob);
+  }
+
+  function copyXyzExport(state, button) {
+    var text = buildXyzExportText(state);
+
+    if (!text) {
+      return;
+    }
+
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      alert("Copy XYZ is not supported by this browser or context.");
+      return;
+    }
+
+    navigator.clipboard.writeText(text).then(function () {
+      flashButtonText(button, "Copied");
+    }).catch(function (error) {
+      console.error("Copy XYZ failed:", error);
+      alert(
+        "Copy XYZ failed" +
+        (error && error.name ? ": " + error.name : "") +
+        (error && error.message ? " — " + error.message : ".")
+      );
+    });
   }
 
   function svgToPngBlob(svgText, dpi, onSuccess, onError) {
@@ -2529,6 +2684,8 @@
     var copyPngButton = $("ortep-btn-copy-png");
     var pngButton = $("ortep-btn-download-png");
     var svgButton = $("ortep-btn-download-svg");
+    var copyXyzButton = $("ortep-btn-copy-xyz");
+    var xyzButton = $("ortep-btn-download-xyz");
 
     if (useAsFigureButton) {
       useAsFigureButton.addEventListener("click", function () {
@@ -2580,7 +2737,7 @@
 
         downloadPngFromSvg(
           ortep.liveSvg,
-          currentExportBaseName(state) + "_300dpi.png",
+          currentExportBaseName(state) + ".png",
           300
         );
       });
@@ -2599,6 +2756,30 @@
         });
 
         downloadBlob(currentExportBaseName(state) + ".svg", blob);
+      });
+    }
+
+    if (copyXyzButton) {
+      copyXyzButton.addEventListener("click", function () {
+        var ortep = ensureState(state);
+
+        if (!ortep.fragment) {
+          return;
+        }
+
+        copyXyzExport(state, copyXyzButton);
+      });
+    }
+
+    if (xyzButton) {
+      xyzButton.addEventListener("click", function () {
+        var ortep = ensureState(state);
+
+        if (!ortep.fragment) {
+          return;
+        }
+
+        downloadXyzExport(state);
       });
     }
   }

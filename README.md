@@ -1,6 +1,6 @@
 # CIFLord Web
 
-Serverless browser application for CIF reporting, average calculations, geometry-parameter analysis, interatomic distance analysis, disorder-model summarisation, and ORTEP-style SVG structure plotting.
+Serverless browser application for CIF reporting, average calculations, geometry-parameter analysis, interatomic distance analysis, disorder-model summarisation, and ORTEP-style SVG structure plotting with XYZ coordinate export.
 
 ## Start
 
@@ -45,6 +45,8 @@ This web version provides the useful analysis, reporting, and visualisation part
 - Optional use of the current ORTEP plot as an inline figure in the HTML preview and standalone HTML export
 - ORTEP export as SVG or PNG
 - ORTEP copy as PNG
+- XYZ coordinate export of the currently visible ORTEP plot atoms, centered on their centroid
+- XYZ copy to clipboard
 - Export as standalone HTML, Markdown, plain text, CSV, and RTF
 - Copy as formatted preview, Markdown, or plain text
 
@@ -135,6 +137,8 @@ The current version contains a working browser-only implementation with:
   - PNG copy to clipboard
   - PNG download
   - SVG download
+  - XYZ copy to clipboard
+  - XYZ download
 - Export/download:
   - standalone HTML
   - RTF
@@ -259,9 +263,9 @@ Limitations:
 - CShM values are only available for coordination numbers 2–6.
 - Geometry parameters are not currently included in the CSV export.
 
-## ORTEP SVG plot
+## ORTEP SVG plot and XYZ export
 
-The ORTEP Plot tab generates an ORTEP-style SVG structure plot from the loaded CIF.
+The ORTEP Plot tab generates an ORTEP-style SVG structure plot from the loaded CIF, and can export the currently displayed atoms as plain XYZ coordinates.
 
 The ORTEP model is generated lazily when the ORTEP Plot tab is opened. Loading a CIF file does not automatically create an ORTEP plot while the user is working in other tabs.
 
@@ -293,12 +297,16 @@ The ORTEP Plot tab supports:
 - PNG copy to clipboard
 - PNG download
 - SVG download
+- XYZ copy to clipboard
+- XYZ download
 
 Hydrogen-bond annotations are added interactively. When a hydrogen atom is selected, the app searches for plausible acceptor atoms among the atoms currently visible in the ORTEP plot using simple geometric criteria. Added hydrogen bonds are drawn as dashed H···A contacts and can be removed again. The feature is intended for selected plot annotations, not for full hydrogen-bond network analysis.
 
 The ORTEP figure can be inserted into the HTML preview by using the ORTEP Plot controls. The inserted figure is a frozen copy of the current ORTEP SVG view. Subsequent rotation or styling changes do not update the preview figure until the user explicitly updates it again.
 
 The ORTEP figure is included in the standalone HTML export as inline SVG when it has been added to the preview. It is not embedded in RTF, Markdown, plain-text, or CSV exports.
+
+XYZ export writes exactly the atoms currently visible in the ORTEP plot: atoms hidden through the hydrogen display options, manual atom overrides, or omitted disorder alternatives are excluded, and any coordinate hydrogen atoms added via the ORTEP options are included. Coordinates are re-centered on the unweighted geometric centroid of the exported atoms, so the exported molecule is placed near the origin regardless of its position in the unit cell. Atoms are sorted by descending atomic number (hydrogen last), with a stable sort so atoms of the same element keep their CIF label order. No atom labels are written, matching plain XMol .xyz format. The exported filename encodes the component's chemical formula, which is not recalculated from the current visibility state and does not change when individual atoms are hidden.
 
 Limitations:
 
@@ -311,6 +319,8 @@ Limitations:
 - PNG export and PNG clipboard copy are generated in the browser from the SVG representation.
 - PNG clipboard copy depends on browser support for image clipboard writing and may require a secure browser context.
 - ORTEP plots are not written back to CIF files.
+- XYZ export reflects only the atoms currently visible in the ORTEP plot and does not perform its own connectivity or disorder analysis.
+- The formula shown in the XYZ/PNG/SVG filename reflects the identified component, not the atoms currently hidden or shown in the plot.
 
 ## Interatomic distances
 
@@ -549,6 +559,7 @@ Therefore:
 - Markdown copy is supported
 - plain text copy is supported
 - ORTEP PNG image copy is supported where the browser allows image clipboard writing
+- ORTEP XYZ text copy is supported where the browser allows clipboard text writing
 - standalone HTML download is supported and includes the inline ORTEP SVG figure if present
 - RTF download is supported
 - direct RTF clipboard copy is not provided
@@ -570,6 +581,7 @@ For word-processor workflows, use the RTF download where possible. ORTEP plots c
 - ORTEP hydrogen-bond annotations only consider currently visible atoms and are not a packing-network search.
 - ORTEP plots can be included as inline SVG in the preview and standalone HTML export, but are not embedded in RTF/Markdown/plain-text/CSV exports.
 - ORTEP PNG clipboard copy depends on browser support and security context.
+- XYZ export mirrors the currently visible ORTEP atoms (WYSIWYG) rather than performing independent molecule or disorder detection.
 - Manual Disorder Helper edits are not written back to CIF files.
 - No CIF editing or rewriting is provided.
 - No LaTeX, PDF, DOCX export is provided directly.
