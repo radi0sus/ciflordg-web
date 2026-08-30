@@ -993,6 +993,175 @@
     };
   }
 
+  /*
+    --- Evans & Boeyens conformational decomposition ---------------------
+    Reference: D. G. Evans, J. C. A. Boeyens, "Conformational Analysis of
+    Ring Pucker", Acta Cryst. (1989), B45, 581-590.
+
+    This is a DIFFERENT, complementary description from the
+    classify*Pucker() functions above (used for the "Conformation"
+    column). Those snap the ring to the single nearest named family on a
+    fixed grid. This one does not snap: it expresses the ring's actual
+    (q2, phi2[, q3]) exactly as a normalised linear combination of the
+    two (or three) nearest primitive symmetric forms, e.g. "91.6% Chair +
+    7.3% Boat (phi=180 deg) + 1.1% Twist-Boat (phi=210 deg)" — the same
+    approach as PLATON's PLA218-PLA225 (dispatch: PLA219 for 6-rings,
+    PLA221 for 5-rings; coefficient solve PLA222; nearest-phase search
+    PLA224/PLA225), re-derived from the paper's own equations (p. 589)
+    rather than transcribed from the Fortran control flow.
+  */
+
+  function boeyensNearestPhase(phi, offsetDeg, stepDeg, kCount) {
+    phi = ((phi % 360) + 360) % 360;
+
+    var best = offsetDeg;
+    var bestDist = Infinity;
+
+    for (var k = 0; k < kCount; k++) {
+      var angle = offsetDeg + k * stepDeg;
+      var raw = Math.abs(phi - angle) % 360;
+      var d = Math.min(raw, 360 - raw);
+
+      if (d < bestDist) {
+        bestDist = d;
+        best = angle;
+      }
+    }
+
+    return best;
+  }
+
+  // Coefficients of the two primitive forms at phase angles A and B that
+  // bracket the ring's actual phase, given the ring's Em-mode amplitude
+  // q (q2 for both 5- and 6-membered rings): XA = q*sin(phi-B)/sin(A-B),
+  // XB = q*sin(A-phi)/sin(A-B).
+  function boeyensCoeffs(q, phi, A, B) {
+    function rad(d) { return d * Math.PI / 180; }
+
+    var R = rad(phi), Ar = rad(A), Br = rad(B);
+    var w = Math.sin(Ar - Br);
+
+    if (Math.abs(w) < 1e-10) {
+      return null;
+    }
+
+    return {
+      xa: Math.max(0, q * Math.sin(R - Br) / w),
+      xb: Math.max(0, q * Math.sin(Ar - R) / w)
+    };
+  }
+
+  // 6-ring: Chair (B2u mode, amplitude |q3|) + nearest Boat/Twist-Boat
+  // pair (Em mode, amplitude q2).
+  function boeyensDecompose6(pucker) {
+    if (!pucker || pucker.N !== 6) {
+      return null;
+    }
+
+    if (pucker.classification && pucker.classification.family === "Planar") {
+      return null;
+    }
+
+    var q2 = pucker.q2, phi2 = pucker.phi2, q3 = pucker.q3;
+
+    var A = boeyensNearestPhase(phi2, 0, 60, 6);
+    var B = boeyensNearestPhase(phi2, 30, 60, 6);
+
+    var coeffs = boeyensCoeffs(q2, phi2, A, B);
+
+    if (!coeffs) {
+      return null;
+    }
+
+    var v = Math.abs(q3);
+    var total = coeffs.xa + coeffs.xb + v;
+
+    if (total < 1e-8) {
+      return null;
+    }
+
+    return {
+      N: 6,
+      chair: { fraction: v / total, sign: q3 >= 0 ? 1 : -1 },
+      boat: { fraction: coeffs.xa / total, phase: A },
+      twistBoat: { fraction: coeffs.xb / total, phase: B }
+    };
+  }
+
+  // 5-ring: nearest Envelope/Twist pair only (no B2u term — it only
+  // exists for even N).
+  function boeyensDecompose5(pucker) {
+    if (!pucker || pucker.N !== 5) {
+      return null;
+    }
+
+    if (pucker.classification && pucker.classification.family === "Planar") {
+      return null;
+    }
+
+    var q2 = pucker.q2, phi2 = pucker.phi2;
+
+    var A = boeyensNearestPhase(phi2, 0, 36, 10);
+    var B = boeyensNearestPhase(phi2, 18, 36, 10);
+
+    var coeffs = boeyensCoeffs(q2, phi2, A, B);
+
+    if (!coeffs) {
+      return null;
+    }
+
+    var total = coeffs.xa + coeffs.xb;
+
+    if (total < 1e-8) {
+      return null;
+    }
+
+    return {
+      N: 5,
+      envelope: { fraction: coeffs.xa / total, phase: A },
+      twist: { fraction: coeffs.xb / total, phase: B }
+    };
+  }
+
+  function boeyensDecomposition(pucker) {
+    if (!pucker) {
+      return null;
+    }
+
+    if (pucker.N === 6) {
+      return boeyensDecompose6(pucker);
+    }
+
+    if (pucker.N === 5) {
+      return boeyensDecompose5(pucker);
+    }
+
+    return null;
+  }
+
+  function boeyensDecompositionLabel(decomp) {
+    if (!decomp) {
+      return "—";
+    }
+
+    function pct(f) { return (f * 100).toFixed(1); }
+
+    if (decomp.N === 6) {
+      var chairNote = decomp.chair.sign < 0 ? ", inverted" : "";
+
+      return (
+        pct(decomp.chair.fraction) + "% Chair" + chairNote + " + " +
+        pct(decomp.boat.fraction) + "% Boat (φ=" + decomp.boat.phase + "°) + " +
+        pct(decomp.twistBoat.fraction) + "% Twist-Boat (φ=" + decomp.twistBoat.phase + "°)"
+      );
+    }
+
+    return (
+      pct(decomp.envelope.fraction) + "% Envelope (φ=" + decomp.envelope.phase + "°) + " +
+      pct(decomp.twist.fraction) + "% Twist (φ=" + decomp.twist.phase + "°)"
+    );
+  }
+
   function conformationLabel(result) {
     if (!result.classification) {
       return "—";
@@ -1175,6 +1344,7 @@
           "<td class=\"number\">" + formatValueWithEsd(result.q2, result.q2Esd, 4) + "</td>" +
           "<td class=\"number\">" + (result.N === 6 ? formatValueWithEsd(result.q3, result.q3Esd, 4) : "—") + "</td>" +
           "<td>" + escapeHtml(conformationLabel(result)) + "</td>" +
+          "<td>" + escapeHtml(boeyensDecompositionLabel(result.boeyens)) + "</td>" +
           "<td><button type=\"button\" data-ring-remove=\"" + escapeHtml(result.id) + "\">Remove</button></td>" +
         "</tr>"
       );
@@ -1193,6 +1363,7 @@
             "<th>" + unitLabel(state, "q₂", "Å") + "</th>" +
             "<th>" + unitLabel(state, "q₃", "Å") + "</th>" +
             "<th>Conformation</th>" +
+            "<th>Evans-Boeyens decomposition</th>" +
             "<th>Remove</th>" +
           "</tr>" +
         "</thead>" +
@@ -1244,6 +1415,7 @@
         theta: pucker.theta,
         thetaEsd: pucker.thetaEsd,
         classification: pucker.classification,
+        boeyens: boeyensDecomposition(pucker),
         centroid: pucker.centroid,
         normal: pucker.normal,
         zDisplacements: pucker.zDisplacements

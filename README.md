@@ -109,6 +109,7 @@ The current version contains a working browser-only implementation with:
   - detection of rings that close through a symmetry operation (for example a chelate ring around a metal on a special position)
   - per-ring "Reverse order" toggle for the ring traversal direction
   - Cremer-Pople ring puckering analysis: Q, θ, φ₂, q₂, q₃, and a Chair/Boat/Twist-Boat/Envelope/Half-Chair (6-ring) or Envelope/Twist (5-ring) conformation classification
+  - Evans-Boeyens conformational decomposition (percentage character relative to the nearest primitive symmetric forms)
   - estimated e.s.d.s for all puckering parameters
   - stored calculated ring results
   - optional inclusion of ring results in the generated report
@@ -292,12 +293,13 @@ Calculated parameters (D. Cremer & J. A. Pople, *J. Am. Chem. Soc.* 1975, 97, 13
 - `θ`, `φ₂` — polar and azimuthal puckering angle (6-membered rings)
 - `q₂`, `q₃` — puckering amplitude components
 - conformation classification: Chair/Boat/Twist-Boat/Envelope/Half-Chair for 6-membered rings, Envelope/Twist for 5-membered rings, or Planar
+- Evans-Boeyens conformational decomposition (G. G. Evans & J. A. Boeyens, *Acta Cryst.* 1989, B45, 581–590): expresses the ring's actual pucker as a normalised percentage combination of the nearest primitive symmetric forms (e.g. "90.0% Chair + 2.6% Boat (φ=240°) + 7.4% Twist-Boat (φ=270°)"), rather than snapping to a single nearest family. Not calculated for planar rings.
 
 Estimated standard deviations (e.s.d.s) are propagated from the atomic-coordinate e.s.d.s in the CIF, following the approach used by PLATON's ring-puckering routine (R. Norrestam, *Acta Cryst.* 1981, A37, 764–765): each ring atom's isotropic Cartesian position variance (rotated through the relevant symmetry operation where applicable) propagates linearly through the Cremer-Pople formulas for Q, θ, φ₂, q₂, and q₃. Values are displayed in `value(esd)` notation.
 
 Calculated ring results are stored in the tab until they are removed or the CIF is reloaded.
 
-Ring results can be included in or excluded from the generated report using the global report option. Included ring results are added as a separate `Ring puckering parameters` table in the report preview and in standalone HTML, Markdown, plain text, and RTF exports, placed directly after the geometry-parameters table (or after the bond-angle table if geometry parameters are not shown).
+Ring results can be included in or excluded from the generated report using the global report option. Included ring results are added as two separate tables in the report preview and in standalone HTML, Markdown, plain text, and RTF exports, placed directly after the geometry-parameters table (or after the bond-angle table if geometry parameters are not shown): a `Ring puckering parameters` table (Table *n*.1: Q, θ, φ₂, q₂, q₃, conformation) and an `Evans-Boeyens conformational decomposition` table (Table *n*.2: ring atoms, N, decomposition text) — kept separate since the decomposition text is long and does not fit alongside the numeric columns.
 
 Limitations:
 

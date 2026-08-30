@@ -396,12 +396,32 @@
     };
   }
 
-  function symDisplay(symCode) {
+  function isPrimeSymmetrySymbol(symbol) {
+    return symbol === "'" || symbol === "''" || symbol === "'''";
+  }
+
+  function symSupLocal(symbol) {
+    if (!symbol) {
+      return "";
+    }
+
+    if (isPrimeSymmetrySymbol(symbol)) {
+      return symbol;
+    }
+
+    return "<sup>" + symbol + "</sup>";
+  }
+
+  function symDisplay(state, symCode) {
     if (isIdentitySymCode(symCode)) {
       return "—";
     }
 
-    return String(symCode || "");
+    var note = (state.symmetryNotes || []).find(function (n) {
+      return n.code === symCode;
+    });
+
+    return note ? note.symbol : String(symCode || "");
   }
 
   function ligandKey(ligand) {
@@ -487,7 +507,7 @@
           ? bond.numericalValue
           : distance3(centerCart, ligandCart),
 
-        symmetry: symDisplay(ligandSymCode)
+        symmetry: symDisplay(state, ligandSymCode)
       };
 
       var key = ligandKey(ligand);
@@ -1046,9 +1066,10 @@
     );
   }
 
-  function ligandListText(ligands) {
+  function ligandListHtml(ligands) {
     return (ligands || []).map(function (ligand) {
-      return ligand.label + (ligand.symmetry && ligand.symmetry !== "—" ? " [" + ligand.symmetry + "]" : "");
+      var symbol = ligand.symmetry && ligand.symmetry !== "—" ? ligand.symmetry : "";
+      return escapeHtml(ligand.label) + symSupLocal(symbol);
     }).join(", ");
   }
 
@@ -1111,7 +1132,7 @@
         "<tr>" +
           "<td>" + escapeHtml(result.centerLabel) + "</td>" +
           "<td class=\"number\">" + result.cn + "</td>" +
-          "<td>" + escapeHtml(ligandListText(result.ligands)) + "</td>" +
+          "<td>" + ligandListHtml(result.ligands) + "</td>" +
           "<td>" + cshmComparisonHtml(result) + "</td>" +
           "<td class=\"number\">" + (isFinite(d["τ₄"]) ? formatNumber(d["τ₄"], 4) : "—") + "</td>" +
           "<td class=\"number\">" + (isFinite(d["τ₄′"]) ? formatNumber(d["τ₄′"], 4) : "—") + "</td>" +

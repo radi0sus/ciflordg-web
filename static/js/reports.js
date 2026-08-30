@@ -680,6 +680,31 @@
     return c.family + " (" + c.symbol + ")" + (c.approximate ? " (approx.)" : "");
   }
 
+  function ringBoeyensText(result) {
+    var decomp = result.boeyens;
+
+    if (!decomp) {
+      return "—";
+    }
+
+    function pct(f) { return (f * 100).toFixed(1); }
+
+    if (decomp.N === 6) {
+      var chairNote = decomp.chair.sign < 0 ? ", inverted" : "";
+
+      return (
+        pct(decomp.chair.fraction) + "% Chair" + chairNote + " + " +
+        pct(decomp.boat.fraction) + "% Boat (φ=" + decomp.boat.phase + "°) + " +
+        pct(decomp.twistBoat.fraction) + "% Twist-Boat (φ=" + decomp.twistBoat.phase + "°)"
+      );
+    }
+
+    return (
+      pct(decomp.envelope.fraction) + "% Envelope (φ=" + decomp.envelope.phase + "°) + " +
+      pct(decomp.twist.fraction) + "% Twist (φ=" + decomp.twist.phase + "°)"
+    );
+  }
+
   function ringValue(value, digits) {
     return typeof value === "number" && isFinite(value)
       ? Number(value).toFixed(digits)
@@ -715,14 +740,13 @@
     });
   }
   
-  function geometryLigandsText(result) {
+  function geometryLigandsHtml(result) {
     return (result.ligands || []).map(function (ligand) {
-      var label = ligand.label || "";
-      var sym = ligand.symmetry && ligand.symmetry !== "—"
-        ? " [" + ligand.symmetry + "]"
-        : "";
-  
-      return label + sym;
+      var label = escapeHtml(ligand.label || "");
+      var symbol = ligand.symmetry && ligand.symmetry !== "—" ? ligand.symmetry : "";
+      var sup = isPrimeSymmetrySymbol(symbol) ? symbol : (symbol ? "<sup>" + symbol + "</sup>" : "");
+
+      return label + sup;
     }).join(", ");
   }
   
@@ -1039,7 +1063,7 @@
               "<tr>" +
                 "<td>" + escapeHtml(result.centerLabel) + "</td>" +
                 "<td class=\"number\">" + escapeHtml(String(result.cn)) + "</td>" +
-                "<td>" + escapeHtml(geometryLigandsText(result)) + "</td>" +
+                "<td>" + geometryLigandsHtml(result) + "</td>" +
                 "<td>" + geometryCshmHtml(result) + "</td>" +
                 "<td class=\"number\">" + geometryValue(d["τ₄"]) + "</td>" +
                 "<td class=\"number\">" + geometryValue(d["τ₄′"]) + "</td>" +
@@ -1057,9 +1081,12 @@
     if (!results || !results.length) {
       return "";
     }
-  
-    return (
-      "<h2>Table " + tableNumber + ": Ring puckering parameters for <strong>" +
+
+    var hasBoeyens = results.some(function (result) { return !!result.boeyens; });
+    var mainLabel = hasBoeyens ? tableNumber + ".1" : String(tableNumber);
+
+    var main = (
+      "<h2>Table " + mainLabel + ": Ring puckering parameters for <strong>" +
         escapeHtml(dataName) +
         "</strong>.</h2>" +
       "<table class=\"ring-report-table\">" +
@@ -1093,6 +1120,38 @@
         "</tbody>" +
       "</table>"
     );
+
+    if (!hasBoeyens) {
+      return main;
+    }
+
+    var boeyens = (
+      "<h2>Table " + tableNumber + ".2: Evans-Boeyens conformational decomposition for <strong>" +
+        escapeHtml(dataName) +
+        "</strong>.</h2>" +
+      "<table class=\"ring-boeyens-table\">" +
+        "<thead>" +
+          "<tr>" +
+            "<th>Ring atoms</th>" +
+            "<th>N</th>" +
+            "<th>Evans-Boeyens decomposition</th>" +
+          "</tr>" +
+        "</thead>" +
+        "<tbody>" +
+          results.map(function (result) {
+            return (
+              "<tr>" +
+                "<td>" + ringAtomsHtml(result) + "</td>" +
+                "<td class=\"number\">" + escapeHtml(String(result.N)) + "</td>" +
+                "<td>" + escapeHtml(ringBoeyensText(result)) + "</td>" +
+              "</tr>"
+            );
+          }).join("") +
+        "</tbody>" +
+      "</table>"
+    );
+
+    return main + boeyens;
   }
   
   function htmlDisorderTable(tableNumber, rows, dataName) {
@@ -1671,7 +1730,7 @@
       out +=
         "| " + markdownCell(result.centerLabel) +
         " | " + result.cn +
-        " | " + markdownCell(geometryLigandsText(result)) +
+        " | " + markdownCell(geometryLigandsHtml(result)) +
         " | " + markdownCell(geometryCshmMarkdown(result)) +
         " | " + geometryValue(d["τ₄"]) +
         " | " + geometryValue(d["τ₄′"]) +
@@ -1690,8 +1749,11 @@
     if (!results || !results.length) {
       return "";
     }
+
+    var hasBoeyens = results.some(function (result) { return !!result.boeyens; });
+    var mainLabel = hasBoeyens ? tableNumber + ".1" : tableNumber;
   
-    out += "## Table " + tableNumber + ": Ring puckering parameters for **" + dataName + "**.\n\n";
+    out += "## Table " + mainLabel + ": Ring puckering parameters for **" + dataName + "**.\n\n";
     out +=
       "| Ring atoms | N | " + labelWithUnit(state, "Q", "Å") +
       " | " + labelWithUnit(state, "θ", "°") +
@@ -1714,6 +1776,24 @@
         " |\n";
     });
   
+    out += "\n";
+
+    if (!hasBoeyens) {
+      return out;
+    }
+
+    out += "## Table " + tableNumber + ".2: Evans-Boeyens conformational decomposition for **" + dataName + "**.\n\n";
+    out += "| Ring atoms | N | Evans-Boeyens decomposition |\n";
+    out += "|---|---:|---|\n";
+
+    results.forEach(function (result) {
+      out +=
+        "| " + markdownCell(ringAtomsHtml(result)) +
+        " | " + result.N +
+        " | " + markdownCell(ringBoeyensText(result)) +
+        " |\n";
+    });
+
     out += "\n";
     return out;
   }
@@ -2005,7 +2085,7 @@
       return [
         result.centerLabel,
         String(result.cn),
-        geometryLigandsText(result),
+        plainInline(geometryLigandsHtml(result)),
         geometryCshmText(result),
         geometryValue(d["τ₄"]),
         geometryValue(d["τ₄′"]),
@@ -2050,7 +2130,8 @@
     }
   
     var out = "";
-    var caption = "Table " + tableNumber + ": Ring puckering parameters for " + dataName + ".";
+    var hasBoeyens = results.some(function (result) { return !!result.boeyens; });
+    var caption = "Table " + (hasBoeyens ? tableNumber + ".1" : tableNumber) + ": Ring puckering parameters for " + dataName + ".";
   
     var headers = [
       "Ring atoms",
@@ -2086,22 +2167,60 @@
       });
     });
   
-    function rowLine(cells) {
+    function rowLine(cells, colWidths) {
       return cells.map(function (cell, i) {
-        return padRight(cell, widths[i]);
+        return padRight(cell, colWidths[i]);
       }).join("    ") + "\n";
     }
   
     out += plainLine(caption);
-    out += rowLine(headers);
+    out += rowLine(headers, widths);
     out += rowLine(widths.map(function (w) {
       return "-".repeat(w);
-    }));
+    }), widths);
   
     rows.forEach(function (row) {
-      out += rowLine(row);
+      out += rowLine(row, widths);
     });
   
+    out += "\n";
+
+    if (!hasBoeyens) {
+      return out;
+    }
+
+    var boeyensCaption = "Table " + tableNumber + ".2: Evans-Boeyens conformational decomposition for " + dataName + ".";
+
+    var boeyensHeaders = ["Ring atoms", "N", "Evans-Boeyens decomposition"];
+
+    var boeyensRows = results.map(function (result) {
+      return [
+        plainInline(ringAtomsHtml(result)),
+        String(result.N),
+        ringBoeyensText(result)
+      ];
+    });
+
+    var boeyensWidths = boeyensHeaders.map(function (h) {
+      return h.length;
+    });
+
+    boeyensRows.forEach(function (row) {
+      row.forEach(function (cell, i) {
+        boeyensWidths[i] = Math.max(boeyensWidths[i], String(cell || "").length);
+      });
+    });
+
+    out += plainLine(boeyensCaption);
+    out += rowLine(boeyensHeaders, boeyensWidths);
+    out += rowLine(boeyensWidths.map(function (w) {
+      return "-".repeat(w);
+    }), boeyensWidths);
+
+    boeyensRows.forEach(function (row) {
+      out += rowLine(row, boeyensWidths);
+    });
+
     out += "\n";
     return out;
   }
@@ -2723,6 +2842,24 @@
   
     return out;
   }
+
+  function rtfGridRow(cells, widths, bold) {
+    var out = "{\\trowd\\trgaph108\\trql";
+  
+    widths.forEach(function (w) {
+      out += "\\cellx" + w;
+    });
+  
+    cells.forEach(function (cell) {
+      out += "\\pard\\intbl \\f0\\fs20 " +
+        (bold ? "{\\b " + cell + "}" : cell) +
+        "\\cell";
+    });
+  
+    out += "\\row}\n";
+  
+    return out;
+  }
   
   function rtfGeometryTable(tableNumber, state, results) {
     if (!results || !results.length) {
@@ -2755,7 +2892,7 @@
       out += rtfGeometryRow([
         rtfEscape(result.centerLabel),
         rtfEscape(String(result.cn)),
-        rtfEscape(geometryLigandsText(result)),
+        rtfInlineFromHtml(geometryLigandsHtml(result)),
         geometryCshmRtf(result),
         rtfEscape(geometryValue(d["τ₄"])),
         rtfEscape(geometryValue(d["τ₄′"])),
@@ -2775,9 +2912,10 @@
     }
   
     var out = "";
+    var hasBoeyens = results.some(function (result) { return !!result.boeyens; });
   
     out += rtfParagraph(
-      "{\\b Table " + tableNumber + ": }" +
+      "{\\b Table " + (hasBoeyens ? tableNumber + ".1" : tableNumber) + ": }" +
       rtfEscape("Ring puckering parameters.")
     );
   
@@ -2805,6 +2943,33 @@
       ], false);
     });
   
+    out += rtfBlankLine();
+
+    if (!hasBoeyens) {
+      return out;
+    }
+
+    out += rtfParagraph(
+      "{\\b Table " + tableNumber + ".2: }" +
+      rtfEscape("Evans-Boeyens conformational decomposition.")
+    );
+
+    var boeyensWidths = [1200, 2200, 9800];
+
+    out += rtfGridRow([
+      rtfEscape("Ring atoms"),
+      rtfEscape("N"),
+      rtfEscape("Evans-Boeyens decomposition")
+    ], boeyensWidths, true);
+
+    results.forEach(function (result) {
+      out += rtfGridRow([
+        rtfInlineFromHtml(ringAtomsHtml(result)),
+        rtfEscape(String(result.N)),
+        rtfEscape(ringBoeyensText(result))
+      ], boeyensWidths, false);
+    });
+
     out += rtfBlankLine();
   
     return out;

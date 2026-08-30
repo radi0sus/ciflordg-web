@@ -702,17 +702,17 @@ sup {
    only ordinary value tables with table headers = 60:40.
    Geometry report table is excluded because it has many columns. */
 
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) {
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table):not(.ring-boeyens-table) {
   table-layout: fixed;
 }
 
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) th:first-child,
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) td:first-child {
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table):not(.ring-boeyens-table) th:first-child,
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table):not(.ring-boeyens-table) td:first-child {
   width: 60%;
 }
 
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) th:nth-child(2),
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) td:nth-child(2) {
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table):not(.ring-boeyens-table) th:nth-child(2),
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table):not(.ring-boeyens-table) td:nth-child(2) {
   width: 40%;
 }
 
@@ -797,6 +797,30 @@ sup {
 .report-preview table.ring-report-table th:nth-child(8),
 .report-preview table.ring-report-table td:nth-child(8) {
   white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Evans-Boeyens decomposition table inside the report preview */
+
+.report-preview table.ring-boeyens-table {
+  table-layout: fixed;
+  font-size: 0.82rem;
+}
+
+.report-preview table.ring-boeyens-table th:nth-child(1),
+.report-preview table.ring-boeyens-table td:nth-child(1) {
+  width: 25%;
+  overflow-wrap: anywhere;
+}
+
+.report-preview table.ring-boeyens-table th:nth-child(2),
+.report-preview table.ring-boeyens-table td:nth-child(2) {
+  width: 6%;
+}
+
+.report-preview table.ring-boeyens-table th:nth-child(3),
+.report-preview table.ring-boeyens-table td:nth-child(3) {
+  width: 69%;
   overflow-wrap: anywhere;
 }
 
