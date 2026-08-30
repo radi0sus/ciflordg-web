@@ -662,6 +662,46 @@
     });
   }
   
+  function ringAtomsHtml(result) {
+    return (result.atomsHtml || "") + (result.reversed ? " <span class=\"hint\">(reversed)</span>" : "");
+  }
+
+  function ringConformationText(result) {
+    var c = result.classification;
+
+    if (!c) {
+      return "—";
+    }
+
+    if (c.family === "Planar") {
+      return "Planar";
+    }
+
+    return c.family + " (" + c.symbol + ")" + (c.approximate ? " (approx.)" : "");
+  }
+
+  function ringValue(value, digits) {
+    return typeof value === "number" && isFinite(value)
+      ? Number(value).toFixed(digits)
+      : "—";
+  }
+
+  function ringValueWithEsd(value, esd) {
+    if (typeof value !== "number" || !isFinite(value)) {
+      return "—";
+    }
+
+    if (typeof esd !== "number" || !isFinite(esd) || esd <= 0) {
+      return Number(value).toFixed(4);
+    }
+
+    var exp = Math.floor(Math.log10(esd));
+    var decimals = Math.max(0, Math.min(6, -exp + 1));
+    var esdDigits = Math.round(esd * Math.pow(10, decimals));
+
+    return Number(value).toFixed(decimals) + "(" + esdDigits + ")";
+  }
+
   function geometryHasValues(result) {
     var descriptors = result.descriptors || {};
     var keys = ["τ₄", "τ₄′", "τ₅", "V /Å³"];
@@ -833,6 +873,10 @@
           return geometryHasValues(result);
         });
     
+    var ringResults = state.reportOptions.showRings === false
+      ? []
+      : (state.ringResults || []);
+
     var disorderRows = disorderRowsForReport(state);
     
     return {
@@ -843,6 +887,7 @@
       hbonds: hbonds,
       addedDistances: separateAdded,
       geometryResults: geometryResults,
+      ringResults: ringResults,
       disorderRows: disorderRows,
       symmetryNotes: symmetryNotes,
       figureSymmetryNotes: figureSymmetryNotes,
@@ -1000,6 +1045,48 @@
                 "<td class=\"number\">" + geometryValue(d["τ₄′"]) + "</td>" +
                 "<td class=\"number\">" + geometryValue(d["τ₅"]) + "</td>" +
                 "<td class=\"number\">" + geometryValue(d["V /Å³"]) + "</td>" +
+              "</tr>"
+            );
+          }).join("") +
+        "</tbody>" +
+      "</table>"
+    );
+  }
+  
+  function htmlRingTable(tableNumber, state, results, dataName) {
+    if (!results || !results.length) {
+      return "";
+    }
+  
+    return (
+      "<h2>Table " + tableNumber + ": Ring puckering parameters for <strong>" +
+        escapeHtml(dataName) +
+        "</strong>.</h2>" +
+      "<table class=\"ring-report-table\">" +
+        "<thead>" +
+          "<tr>" +
+            "<th>Ring atoms</th>" +
+            "<th>N</th>" +
+            "<th>" + labelWithUnit(state, "Q", "Å") + "</th>" +
+            "<th>" + labelWithUnit(state, "θ", "°") + "</th>" +
+            "<th>" + labelWithUnit(state, "φ<sub>2</sub>", "°") + "</th>" +
+            "<th>" + labelWithUnit(state, "q<sub>2</sub>", "Å") + "</th>" +
+            "<th>" + labelWithUnit(state, "q<sub>3</sub>", "Å") + "</th>" +
+            "<th>Conformation</th>" +
+          "</tr>" +
+        "</thead>" +
+        "<tbody>" +
+          results.map(function (result) {
+            return (
+              "<tr>" +
+                "<td>" + ringAtomsHtml(result) + "</td>" +
+                "<td class=\"number\">" + escapeHtml(String(result.N)) + "</td>" +
+                "<td class=\"number\">" + ringValueWithEsd(result.Q, result.QEsd) + "</td>" +
+                "<td class=\"number\">" + (result.N === 6 ? ringValueWithEsd(result.theta, result.thetaEsd) : "—") + "</td>" +
+                "<td class=\"number\">" + ringValueWithEsd(result.phi2, result.phi2Esd) + "</td>" +
+                "<td class=\"number\">" + ringValueWithEsd(result.q2, result.q2Esd) + "</td>" +
+                "<td class=\"number\">" + (result.N === 6 ? ringValueWithEsd(result.q3, result.q3Esd) : "—") + "</td>" +
+                "<td>" + escapeHtml(ringConformationText(result)) + "</td>" +
               "</tr>"
             );
           }).join("") +
@@ -1422,6 +1509,15 @@
       );
     }
   
+    if (model.ringResults.length) {
+      html += htmlRingTable(
+        tableNumber++,
+        state,
+        model.ringResults,
+        model.dataName
+      );
+    }
+  
     if (model.disorderRows.length) {
       html += htmlDisorderTable(
         tableNumber++,
@@ -1436,6 +1532,7 @@
       !model.angles.length &&
       !model.hbonds.length &&
       !model.geometryResults.length &&
+      !model.ringResults.length &&
       !model.disorderRows.length
     ) {
       html += "<p class=\"hint\">No values selected for the current element/atom selection.</p>";
@@ -1587,6 +1684,40 @@
     return out;
   }
 
+  function mdRingTable(tableNumber, state, results, dataName) {
+    var out = "";
+  
+    if (!results || !results.length) {
+      return "";
+    }
+  
+    out += "## Table " + tableNumber + ": Ring puckering parameters for **" + dataName + "**.\n\n";
+    out +=
+      "| Ring atoms | N | " + labelWithUnit(state, "Q", "Å") +
+      " | " + labelWithUnit(state, "θ", "°") +
+      " | " + labelWithUnit(state, "φ₂", "°") +
+      " | " + labelWithUnit(state, "q₂", "Å") +
+      " | " + labelWithUnit(state, "q₃", "Å") +
+      " | Conformation |\n";
+    out += "|---|---:|---:|---:|---:|---:|---:|---|\n";
+  
+    results.forEach(function (result) {
+      out +=
+        "| " + markdownCell(ringAtomsHtml(result)) +
+        " | " + result.N +
+        " | " + ringValueWithEsd(result.Q, result.QEsd) +
+        " | " + (result.N === 6 ? ringValueWithEsd(result.theta, result.thetaEsd) : "—") +
+        " | " + ringValueWithEsd(result.phi2, result.phi2Esd) +
+        " | " + ringValueWithEsd(result.q2, result.q2Esd) +
+        " | " + (result.N === 6 ? ringValueWithEsd(result.q3, result.q3Esd) : "—") +
+        " | " + markdownCell(ringConformationText(result)) +
+        " |\n";
+    });
+  
+    out += "\n";
+    return out;
+  }
+
   function mdDisorderTable(tableNumber, rows, dataName) {
     var out = "";
   
@@ -1679,6 +1810,15 @@
       );
     }
     
+    if (model.ringResults.length) {
+      out += mdRingTable(
+        tableNumber++,
+        state,
+        model.ringResults,
+        model.dataName
+      );
+    }
+    
     if (model.disorderRows.length) {
       out += mdDisorderTable(
         tableNumber++,
@@ -1693,6 +1833,7 @@
       !model.angles.length &&
       !model.hbonds.length &&
       !model.geometryResults.length &&
+      !model.ringResults.length &&
       !model.disorderRows.length
     ) {
       out += "No values selected for the current element/atom selection.\n\n";
@@ -1870,6 +2011,68 @@
         geometryValue(d["τ₄′"]),
         geometryValue(d["τ₅"]),
         geometryValue(d["V /Å³"])
+      ];
+    });
+  
+    var widths = headers.map(function (h) {
+      return h.length;
+    });
+  
+    rows.forEach(function (row) {
+      row.forEach(function (cell, i) {
+        widths[i] = Math.max(widths[i], String(cell || "").length);
+      });
+    });
+  
+    function rowLine(cells) {
+      return cells.map(function (cell, i) {
+        return padRight(cell, widths[i]);
+      }).join("    ") + "\n";
+    }
+  
+    out += plainLine(caption);
+    out += rowLine(headers);
+    out += rowLine(widths.map(function (w) {
+      return "-".repeat(w);
+    }));
+  
+    rows.forEach(function (row) {
+      out += rowLine(row);
+    });
+  
+    out += "\n";
+    return out;
+  }
+
+  function plainRingTable(tableNumber, state, results, dataName) {
+    if (!results || !results.length) {
+      return "";
+    }
+  
+    var out = "";
+    var caption = "Table " + tableNumber + ": Ring puckering parameters for " + dataName + ".";
+  
+    var headers = [
+      "Ring atoms",
+      "N",
+      labelWithUnit(state, "Q", "Å"),
+      labelWithUnit(state, "θ", "°"),
+      labelWithUnit(state, "φ₂", "°"),
+      labelWithUnit(state, "q₂", "Å"),
+      labelWithUnit(state, "q₃", "Å"),
+      "Conformation"
+    ];
+  
+    var rows = results.map(function (result) {
+      return [
+        plainInline(ringAtomsHtml(result)),
+        String(result.N),
+        ringValueWithEsd(result.Q, result.QEsd),
+        result.N === 6 ? ringValueWithEsd(result.theta, result.thetaEsd) : "—",
+        ringValueWithEsd(result.phi2, result.phi2Esd),
+        ringValueWithEsd(result.q2, result.q2Esd),
+        result.N === 6 ? ringValueWithEsd(result.q3, result.q3Esd) : "—",
+        ringConformationText(result)
       ];
     });
   
@@ -2095,6 +2298,15 @@
       );
     }
     
+    if (model.ringResults.length) {
+      out += plainRingTable(
+        tableNumber++,
+        state,
+        model.ringResults,
+        model.dataName
+      );
+    }
+    
     if (model.disorderRows.length) {
       out += plainDisorderTable(
         tableNumber++,
@@ -2109,6 +2321,7 @@
       !model.angles.length &&
       !model.hbonds.length &&
       !model.geometryResults.length &&
+      !model.ringResults.length &&
       !model.disorderRows.length
     ) {
       out += "No values selected for the current element/atom selection.\n\n";
@@ -2556,6 +2769,47 @@
     return out;
   }
 
+  function rtfRingTable(tableNumber, state, results) {
+    if (!results || !results.length) {
+      return "";
+    }
+  
+    var out = "";
+  
+    out += rtfParagraph(
+      "{\\b Table " + tableNumber + ": }" +
+      rtfEscape("Ring puckering parameters.")
+    );
+  
+    out += rtfGeometryRow([
+      rtfEscape("Ring atoms"),
+      rtfEscape("N"),
+      rtfEscape(labelWithUnit(state, "Q", "Å")),
+      rtfEscape(labelWithUnit(state, "θ", "°")),
+      rtfEscape("φ") + "{\\sub 2}" + rtfEscape(useSiUnits(state) ? " /°" : " [°]"),
+      rtfEscape("q") + "{\\sub 2}" + rtfEscape(useSiUnits(state) ? " /Å" : " [Å]"),
+      rtfEscape("q") + "{\\sub 3}" + rtfEscape(useSiUnits(state) ? " /Å" : " [Å]"),
+      rtfEscape("Conformation")
+    ], true);
+  
+    results.forEach(function (result) {
+      out += rtfGeometryRow([
+        rtfInlineFromHtml(ringAtomsHtml(result)),
+        rtfEscape(String(result.N)),
+        rtfEscape(ringValueWithEsd(result.Q, result.QEsd)),
+        rtfEscape(result.N === 6 ? ringValueWithEsd(result.theta, result.thetaEsd) : "—"),
+        rtfEscape(ringValueWithEsd(result.phi2, result.phi2Esd)),
+        rtfEscape(ringValueWithEsd(result.q2, result.q2Esd)),
+        rtfEscape(result.N === 6 ? ringValueWithEsd(result.q3, result.q3Esd) : "—"),
+        rtfEscape(ringConformationText(result))
+      ], false);
+    });
+  
+    out += rtfBlankLine();
+  
+    return out;
+  }
+
   function rtfDisorderRow(cells, bold) {
     var widths = [1000, 1600, 2500, 3900, 5200, 6500, 7900, 10000];
   
@@ -2758,6 +3012,14 @@
         tableNumber++,
         state,
         model.geometryResults
+      );
+    }    
+
+    if (model.ringResults.length) {
+      body += rtfRingTable(
+        tableNumber++,
+        state,
+        model.ringResults
       );
     }    
 

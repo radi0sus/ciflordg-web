@@ -1266,6 +1266,10 @@
     if (typeof state.reportOptions.showGeometry !== "boolean") {
       state.reportOptions.showGeometry = true;
     }
+
+    if (typeof state.reportOptions.showRings !== "boolean") {
+      state.reportOptions.showRings = true;
+    }
   
     if (typeof state.reportOptions.showDisorder !== "boolean") {
       state.reportOptions.showDisorder = true;
@@ -1291,6 +1295,7 @@
     var showAngles = $("opt-show-angles");
     var showHBonds = $("opt-show-hbonds");
     var showGeometry = $("opt-show-geometry");
+    var showRings = $("opt-show-rings");
     var showDisorder = $("opt-show-disorder");
     var showCaption = $("opt-show-caption");
     var middleAtomOnly = $("opt-middle-atom-only");
@@ -1329,6 +1334,15 @@
   
       showGeometry.addEventListener("change", function () {
         state.reportOptions.showGeometry = this.checked;
+        renderAll();
+      });
+    }
+  
+    if (showRings) {
+      showRings.checked = !!state.reportOptions.showRings;
+  
+      showRings.addEventListener("change", function () {
+        state.reportOptions.showRings = this.checked;
         renderAll();
       });
     }
@@ -1864,6 +1878,10 @@
       if (typeof state.reportOptions.showGeometry !== "boolean") {
         state.reportOptions.showGeometry = true;
       }
+
+      if (typeof state.reportOptions.showRings !== "boolean") {
+        state.reportOptions.showRings = true;
+      }
       
       if (typeof state.reportOptions.showDisorder !== "boolean") {
         state.reportOptions.showDisorder = true;
@@ -1903,6 +1921,10 @@
           CIFLord.GeometryParameters.render(state);
         }
 
+        if (CIFLord.Rings) {
+          CIFLord.Rings.render(state);
+        }
+
         if (CIFLord.DisorderHelper) {
           CIFLord.DisorderHelper.render(state);
         }
@@ -1927,6 +1949,10 @@
 
       if (CIFLord.GeometryParameters) {
         CIFLord.GeometryParameters.init(state, renderAll);
+      }
+
+      if (CIFLord.Rings) {
+        CIFLord.Rings.init(state, renderAll);
       }
 
       if (CIFLord.DisorderHelper) {

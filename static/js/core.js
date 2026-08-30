@@ -1387,6 +1387,14 @@
       
       state.geometryResults = [];
       
+      state.ringOptions = {
+        centerElement: "",
+        centerAtom: "",
+        reverseByKey: {}
+      };
+
+      state.ringResults = [];
+      
       /*
         Disorder Helper state
       */
@@ -1443,6 +1451,10 @@
       
       if (typeof state.reportOptions.showGeometry !== "boolean") {
         state.reportOptions.showGeometry = true;
+      }
+
+      if (typeof state.reportOptions.showRings !== "boolean") {
+        state.reportOptions.showRings = true;
       }
       
       if (typeof state.reportOptions.showDisorder !== "boolean") {

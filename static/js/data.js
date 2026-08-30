@@ -20,6 +20,7 @@
         showAngles: true,
         showHBonds: true,
         showGeometry: true,
+        showRings: true,
         showDisorder: true,
         showCaption: true,
 

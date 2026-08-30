@@ -32,6 +32,8 @@ This web version provides the useful analysis, reporting, and visualisation part
 - Geometry-parameter calculations from CIF geometry bonds
 - Continuous Shape Measures (CShM) for coordination numbers 2–6
 - Coordination descriptors such as τ₄, τ₄′, τ₅, and coordination polyhedron volume
+- Ring detection (5- and 6-membered) from the CIF geometry bond table, including rings that close through a symmetry operation
+- Cremer-Pople ring puckering analysis with estimated e.s.d.s
 - Interatomic distance calculation with estimated e.s.d.
 - Interatomic distance range search
 - Management of added interatomic distances
@@ -85,6 +87,7 @@ The current version contains a working browser-only implementation with:
   - show/hide bond lengths
   - show/hide bond angles
   - show/hide calculated geometry parameters
+  - show/hide ring-puckering parameters
   - show/hide disorder table
   - show/hide hydrogen-bond table
   - show/hide figure caption
@@ -100,6 +103,15 @@ The current version contains a working browser-only implementation with:
   - τ₄, τ₄′, τ₅, and coordination polyhedron volume
   - stored calculated geometry-parameter results
   - optional inclusion of geometry-parameter results in the generated report
+- Rings tab:
+  - element and atom selection (heaviest element first, matching the other tabs)
+  - automatic detection of 5- and 6-membered rings through the selected atom, from the CIF geometry bond table
+  - detection of rings that close through a symmetry operation (for example a chelate ring around a metal on a special position)
+  - per-ring "Reverse order" toggle for the ring traversal direction
+  - Cremer-Pople ring puckering analysis: Q, θ, φ₂, q₂, q₃, and a Chair/Boat/Twist-boat/Envelope/Half-chair (6-ring) or Envelope/Twist (5-ring) conformation classification
+  - estimated e.s.d.s for all puckering parameters
+  - stored calculated ring results
+  - optional inclusion of ring results in the generated report
 - Interatomic Distances tab:
   - single distance calculation
   - symmetry operation and translation code selection
@@ -262,6 +274,38 @@ Limitations:
 - Disorder and alternative positions may require manual ligand selection.
 - CShM values are only available for coordination numbers 2–6.
 - Geometry parameters are not currently included in the CSV export.
+
+## Ring puckering (Cremer-Pople)
+
+The Rings tab detects 5- and 6-membered rings through a selected atom and calculates Cremer-Pople ring puckering parameters.
+
+Ring detection:
+
+- Rings are searched from the CIF geometry bond table (hydrogen atoms excluded), starting at the selected atom.
+- Rings that close through a symmetry operation (for example a chelate ring around a metal sitting on a special position) are found too. Rather than symbolically composing symmetry operators along the ring path, every heavy atom is expanded by every site-symmetry code appearing in the CIF bond table, and connectivity between these expanded copies is reconstructed by matching real Cartesian distances against the CIF-reported bond distances for that atom-label pair — the same distance-based bond perception real crystallographic software uses.
+- The selected atom is always the ring's starting point. Between the two possible traversal directions, the default (non-reversed) one is chosen the same way PLATON's own ring search canonicalises duplicate ring windings: by atom-list index rather than by any 3D handedness (which is not well-defined without a fixed viewing direction). A per-ring "Reverse order" checkbox flips this for the calculation; Q, θ, and the conformation family are direction-independent, but φ₂ is not.
+- Symmetry-generated ring atoms are labeled using the same convention as the rest of the report (`'`, `''`, `'''` for the first three symmetry codes encountered, roman numerals afterwards).
+
+Calculated parameters (D. Cremer & J. A. Pople, *J. Am. Chem. Soc.* 1975, 97, 1354–1358):
+
+- `Q` — total puckering amplitude
+- `θ`, `φ₂` — polar and azimuthal puckering angle (6-membered rings)
+- `q₂`, `q₃` — puckering amplitude components
+- conformation classification: Chair/Boat/Twist-boat/Envelope/Half-chair for 6-membered rings, Envelope/Twist for 5-membered rings, or Planar
+
+Estimated standard deviations (e.s.d.s) are propagated from the atomic-coordinate e.s.d.s in the CIF, following the approach used by PLATON's ring-puckering routine (R. Norrestam, *Acta Cryst.* 1981, A37, 764–765): each ring atom's isotropic Cartesian position variance (rotated through the relevant symmetry operation where applicable) propagates linearly through the Cremer-Pople formulas for Q, θ, φ₂, q₂, and q₃. Values are displayed in `value(esd)` notation.
+
+Calculated ring results are stored in the tab until they are removed or the CIF is reloaded.
+
+Ring results can be included in or excluded from the generated report using the global report option. Included ring results are added as a separate `Ring puckering parameters` table in the report preview and in standalone HTML, Markdown, plain text, and RTF exports, placed directly after the geometry-parameters table (or after the bond-angle table if geometry parameters are not shown).
+
+Limitations:
+
+- Only 5- and 6-membered rings are detected.
+- Ring detection depends on the CIF geometry bond table; missing bonds may prevent a ring from being found.
+- Symmetry-generated ring closures are found via distance matching against CIF-reported bond distances (±0.05 Å tolerance), not via full space-group expansion.
+- E.s.d. propagation uses an isotropic approximation of each atom's Cartesian position variance (no off-diagonal covariance terms), matching the approximation PLATON itself documents for this calculation.
+- Ring results are not currently included in the CSV export.
 
 ## ORTEP SVG plot and XYZ export
 
@@ -477,6 +521,7 @@ It preserves basic formatting such as:
 - tables
 - symmetry notes
 - geometry-parameter tables
+- ring-puckering-parameter tables
 - disorder tables
 
 ORTEP plots are not included in RTF export.
@@ -486,6 +531,8 @@ ORTEP plots are not included in RTF export.
 Markdown export is intended for readable text-based reports and further conversion using tools such as Pandoc.
 
 Included geometry-parameter results are exported as a Markdown table.
+
+Included ring-puckering results are exported as a Markdown table, using Unicode Greek letters and subscripts (`θ`, `φ₂`, `q₂`, `q₃`) rather than ASCII spelled-out labels.
 
 Included disorder rows are exported as a Markdown table.
 
@@ -498,6 +545,8 @@ ORTEP plots are not included in Markdown export.
 Plain text export provides a simple fixed-width readable report.
 
 Included geometry-parameter results are exported as an aligned plain-text table.
+
+Included ring-puckering results are exported as an aligned plain-text table, using Unicode Greek letters and subscripts (`θ`, `φ₂`, `q₂`, `q₃`) rather than ASCII spelled-out labels.
 
 Included disorder rows are exported as an aligned plain-text table.
 
@@ -539,7 +588,7 @@ For disorder rows:
 
 Typographic dashes are converted to ASCII hyphens in the CSV output.
 
-Geometry-parameter results, hydrogen-bond table rows, and ORTEP plots are not currently included in the CSV export.
+Geometry-parameter results, ring-puckering results, hydrogen-bond table rows, and ORTEP plots are not currently included in the CSV export.
 
 ## Notes on copy/paste
 
@@ -577,6 +626,9 @@ For word-processor workflows, use the RTF download where possible. ORTEP plots c
 - Geometry-parameter calculations depend on the CIF geometry bond table.
 - CShM calculations are available for coordination numbers 2–6.
 - Geometry-parameter results are not currently included in CSV export.
+- Ring detection is limited to 5- and 6-membered rings, and depends on the CIF geometry bond table.
+- Ring e.s.d. propagation uses an isotropic Cartesian variance approximation (no off-diagonal covariance terms).
+- Ring results are not currently included in CSV export.
 - ORTEP plotting depends on CIF geometry bonds and available ADP data.
 - ORTEP hydrogen-bond annotations only consider currently visible atoms and are not a packing-network search.
 - ORTEP plots can be included as inline SVG in the preview and standalone HTML export, but are not embedded in RTF/Markdown/plain-text/CSV exports.

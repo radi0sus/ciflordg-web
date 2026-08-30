@@ -702,17 +702,17 @@ sup {
    only ordinary value tables with table headers = 60:40.
    Geometry report table is excluded because it has many columns. */
 
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) {
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) {
   table-layout: fixed;
 }
 
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) th:first-child,
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) td:first-child {
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) th:first-child,
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) td:first-child {
   width: 60%;
 }
 
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) th:nth-child(2),
-.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table) td:nth-child(2) {
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) th:nth-child(2),
+.report-preview table:has(thead):not(.geometry-report-table):not(.disorder-report-table):not(.hbond-report-table):not(.ring-report-table) td:nth-child(2) {
   width: 40%;
 }
 
@@ -778,6 +778,25 @@ sup {
 
 .report-preview table.geometry-report-table td:nth-child(3),
 .report-preview table.geometry-report-table td:nth-child(4) {
+  overflow-wrap: anywhere;
+}
+
+/* Ring table inside the report preview */
+
+.report-preview table.ring-report-table {
+  font-size: 0.82rem;
+}
+
+.report-preview table.ring-report-table th,
+.report-preview table.ring-report-table td {
+  white-space: nowrap;
+}
+
+.report-preview table.ring-report-table th:nth-child(1),
+.report-preview table.ring-report-table td:nth-child(1),
+.report-preview table.ring-report-table th:nth-child(8),
+.report-preview table.ring-report-table td:nth-child(8) {
+  white-space: normal;
   overflow-wrap: anywhere;
 }
 

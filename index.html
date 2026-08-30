@@ -99,6 +99,11 @@
           </label>
 
           <label>
+            <input id="opt-show-rings" type="checkbox" checked>
+            Ring parameters
+          </label>
+
+          <label>
             <input id="opt-show-disorder" type="checkbox" checked>
             Disorder table
           </label>
@@ -146,6 +151,7 @@
         <button class="tab" type="button" data-tab="average">Averages</button>
         <button class="tab" type="button" data-tab="geometry">Geometry Parameters</button>
         <button class="tab" type="button" data-tab="interatomic">Interatomic Distances</button>
+        <button class="tab" type="button" data-tab="rings">Rings</button>
         <button class="tab" type="button" data-tab="disorder">Disorder Helper</button>
         <button class="tab" type="button" data-tab="ortep">ORTEP Plot &amp; XYZ Export</button>
       </nav>
@@ -414,6 +420,57 @@
           </div>
 
           <div id="added-distances-table"></div>
+        </section>
+      </section>
+
+      <!-- TAB: Rings -->
+      <section class="tab-page" id="tab-rings">
+        <section class="panel">
+          <h2>Ring selection</h2>
+
+          <div class="filter-grid">
+            <label>
+              Element
+              <select id="ring-select-element"></select>
+            </label>
+
+            <label>
+              Atom
+              <select id="ring-select-atom"></select>
+            </label>
+          </div>
+
+          <p class="hint">
+            5- and 6-membered rings containing the selected atom are detected from the CIF geometry bond
+            table (intramolecular bonds only). The selected atom is always the ring's starting point; the
+            traversal direction from there is chosen the same way PLATON canonicalises ring windings
+            (by atom index, not by any 3D handedness). Check "Reverse order" for a ring to use the
+            opposite direction in the calculation below.
+          </p>
+
+          <h3>Detected rings</h3>
+          <div id="ring-detected-list"></div>
+
+          <div class="table-toolbar">
+            <button type="button" id="btn-ring-calculate">Calculate</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Calculated ring parameters</h2>
+
+          <p class="hint">
+            Cremer-Pople ring puckering analysis (Cremer &amp; Pople, J. Am. Chem. Soc. 1975, 97, 1354-1358).
+            Q is the total puckering amplitude. 6-membered rings additionally report q₂/φ₂ (equatorial
+            component) and q₃/θ (axial component) with a Chair/Boat/Twist-boat/Envelope/Half-chair family
+            assignment; 5-membered rings report q₂/φ₂ with an Envelope/Twist family assignment.
+          </p>
+
+          <div class="table-toolbar">
+            <button type="button" id="btn-ring-clear">Clear calculated parameters</button>
+          </div>
+
+          <div id="ring-results"></div>
         </section>
       </section>
 
@@ -740,6 +797,7 @@
   <script src="static/js/reports.js"></script>
   <script src="static/js/cshm.js"></script>
   <script src="static/js/geometry-parameters.js"></script>
+  <script src="static/js/app.rings.js"></script>
   <script src="static/js/ortep-svg.js"></script>
   <script src="static/js/ortep-ui.js"></script>
   <script src="static/js/ui.js"></script>
