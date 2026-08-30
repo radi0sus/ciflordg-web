@@ -115,7 +115,12 @@
       return "";
     }
 
-    var current = preferred || el.value || "";
+    // options.centerElement/centerAtom in state is the single source of
+    // truth (explicitly reset to "" when a new CIF is loaded) — falling
+    // back to the select's own stale DOM value here would keep the
+    // previous file's selection alive instead of resetting to the
+    // heaviest element of the new one.
+    var current = preferred || "";
 
     if (values.indexOf(current) === -1) {
       current = values[0];

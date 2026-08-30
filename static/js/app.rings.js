@@ -379,7 +379,7 @@
       return "";
     }
 
-    var current = preferred || el.value || "";
+    var current = preferred || "";
 
     if (values.indexOf(current) === -1) {
       current = values[0];
