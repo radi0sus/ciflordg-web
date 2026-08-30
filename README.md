@@ -108,7 +108,7 @@ The current version contains a working browser-only implementation with:
   - automatic detection of 5- and 6-membered rings through the selected atom, from the CIF geometry bond table
   - detection of rings that close through a symmetry operation (for example a chelate ring around a metal on a special position)
   - per-ring "Reverse order" toggle for the ring traversal direction
-  - Cremer-Pople ring puckering analysis: Q, θ, φ₂, q₂, q₃, and a Chair/Boat/Twist-boat/Envelope/Half-chair (6-ring) or Envelope/Twist (5-ring) conformation classification
+  - Cremer-Pople ring puckering analysis: Q, θ, φ₂, q₂, q₃, and a Chair/Boat/Twist-Boat/Envelope/Half-Chair (6-ring) or Envelope/Twist (5-ring) conformation classification
   - estimated e.s.d.s for all puckering parameters
   - stored calculated ring results
   - optional inclusion of ring results in the generated report
@@ -291,7 +291,7 @@ Calculated parameters (D. Cremer & J. A. Pople, *J. Am. Chem. Soc.* 1975, 97, 13
 - `Q` — total puckering amplitude
 - `θ`, `φ₂` — polar and azimuthal puckering angle (6-membered rings)
 - `q₂`, `q₃` — puckering amplitude components
-- conformation classification: Chair/Boat/Twist-boat/Envelope/Half-chair for 6-membered rings, Envelope/Twist for 5-membered rings, or Planar
+- conformation classification: Chair/Boat/Twist-Boat/Envelope/Half-Chair for 6-membered rings, Envelope/Twist for 5-membered rings, or Planar
 
 Estimated standard deviations (e.s.d.s) are propagated from the atomic-coordinate e.s.d.s in the CIF, following the approach used by PLATON's ring-puckering routine (R. Norrestam, *Acta Cryst.* 1981, A37, 764–765): each ring atom's isotropic Cartesian position variance (rotated through the relevant symmetry operation where applicable) propagates linearly through the Cremer-Pople formulas for Q, θ, φ₂, q₂, and q₃. Values are displayed in `value(esd)` notation.
 

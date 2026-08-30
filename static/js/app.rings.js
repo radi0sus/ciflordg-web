@@ -921,6 +921,12 @@
   // numbering a generic ring-search tool cannot assume. This general
   // classification, unlike phi2 itself, does not depend on ring
   // traversal direction.
+  // Reference theta values (Boeyens, J. Cryst. Mol. Struct. 8, (1978),
+  // 317-320 — the same values PLATON's PLA095 lists) rather than
+  // symmetric 45deg quadrants: Chair 0/180, Half-Chair 50.8 (twist
+  // phase), Envelope 54.7 (boat phase), Twist-Boat 67.5 (twist phase),
+  // Boat 90 (boat phase). theta is folded to its 0-90 equivalent since
+  // the reference set is symmetric about theta=90.
   function classifyHexagonPucker(theta, phi) {
     phi = ((phi % 360) + 360) % 360;
 
@@ -938,20 +944,28 @@
     }
 
     var isBoatPhase = boatPhaseDist <= twistPhaseDist;
+    var thetaEff = theta <= 90 ? theta : 180 - theta;
     var family, symbol;
 
-    if (theta <= 22.5 || theta >= 157.5) {
-      family = "Chair";
-      symbol = "C";
-    } else if (theta >= 67.5 && theta <= 112.5) {
-      family = isBoatPhase ? "Boat" : "Twist-boat";
-      symbol = isBoatPhase ? "B" : "S";
+    if (isBoatPhase) {
+      if (thetaEff < 27.35) {
+        family = "Chair"; symbol = "C";
+      } else if (thetaEff < 72.35) {
+        family = "Envelope"; symbol = "E";
+      } else {
+        family = "Boat"; symbol = "B";
+      }
     } else {
-      family = isBoatPhase ? "Envelope" : "Half-chair";
-      symbol = isBoatPhase ? "E" : "H";
+      if (thetaEff < 25.4) {
+        family = "Chair"; symbol = "C";
+      } else if (thetaEff < 59.15) {
+        family = "Half-Chair"; symbol = "H";
+      } else {
+        family = "Twist-Boat"; symbol = "S";
+      }
     }
 
-    return { family: family, symbol: symbol, approximate: true };
+    return { family: family, symbol: symbol, approximate: false };
   }
 
   function classifyPentagonPucker(phi) {
