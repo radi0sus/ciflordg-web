@@ -353,6 +353,7 @@
 
   function makeSymmetrySymbolFactory() {
     var map = {};
+    var order = [];
     var count = 0;
 
     return {
@@ -366,12 +367,14 @@
         if (!map[code]) {
           count++;
           map[code] = roman(count);
+          order.push(code);
         }
 
         return map[code];
       },
 
-      map: map
+      map: map,
+      order: order
     };
   }
 
@@ -861,7 +864,12 @@
   function buildSymmetryNotes(symFactory, symmetryOps) {
     var notes = [];
 
-    Object.keys(symFactory.map).forEach(function (code) {
+    // Iterate the factory's own encounter-order list rather than
+    // Object.keys(symFactory.map): JS engines reorder object keys that
+    // look like plain integers (e.g. a bare "2" symmetry code) into
+    // ascending numeric order ahead of insertion order, which could
+    // shuffle the ', '', ''', I, II, III... sequence out of order.
+    symFactory.order.forEach(function (code) {
       var symbol = symFactory.map[code];
       var operation = getSymOperationForCode(symmetryOps, code);
 

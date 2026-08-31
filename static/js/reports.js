@@ -901,6 +901,16 @@
       ? []
       : (state.ringResults || []);
 
+    var geometrySymmetryNotes = symmetryNotesForSymbols(
+      state,
+      collectGeometrySymmetrySymbols(geometryResults)
+    );
+
+    var ringSymmetryNotes = symmetryNotesForSymbols(
+      state,
+      collectRingSymmetrySymbols(ringResults)
+    );
+
     var disorderRows = disorderRowsForReport(state);
     
     return {
@@ -915,10 +925,67 @@
       disorderRows: disorderRows,
       symmetryNotes: symmetryNotes,
       figureSymmetryNotes: figureSymmetryNotes,
+      geometrySymmetryNotes: geometrySymmetryNotes,
+      ringSymmetryNotes: ringSymmetryNotes,
       ortepFigureSvg: state.ortep && state.ortep.figureSvg
         ? state.ortep.figureSvg
         : ""
     };
+  }
+
+  // The Geometry-Parameters and Rings tables carry their own symmetry
+  // codes (independent of the "independent only" bond/angle filter, which
+  // does not apply to them). Their footnotes are scoped to exactly the
+  // symbols shown in those tables, rather than reusing the Bonds/Angles
+  // footnote, so nothing is missing and nothing unused is listed.
+  function symmetryNotesForSymbols(state, symbols) {
+    if (!symbols || !symbols.length) {
+      return [];
+    }
+
+    var wanted = {};
+
+    symbols.forEach(function (symbol) {
+      wanted[symbol] = true;
+    });
+
+    return (state.symmetryNotes || []).filter(function (note) {
+      return wanted[note.symbol];
+    });
+  }
+
+  function collectGeometrySymmetrySymbols(results) {
+    var seen = {};
+    var symbols = [];
+
+    (results || []).forEach(function (result) {
+      (result.ligands || []).forEach(function (ligand) {
+        var symbol = ligand.symmetry;
+
+        if (symbol && symbol !== "—" && !seen[symbol]) {
+          seen[symbol] = true;
+          symbols.push(symbol);
+        }
+      });
+    });
+
+    return symbols;
+  }
+
+  function collectRingSymmetrySymbols(results) {
+    var seen = {};
+    var symbols = [];
+
+    (results || []).forEach(function (result) {
+      (result.symmetrySymbols || []).forEach(function (symbol) {
+        if (symbol && !seen[symbol]) {
+          seen[symbol] = true;
+          symbols.push(symbol);
+        }
+      });
+    });
+
+    return symbols;
   }
 
   function htmlKeyValueTable(tableNumber, title, rows, dataName) {
@@ -1558,6 +1625,10 @@
         model.dataName
       );
     }
+
+    // Scoped to Bonds/Angles/H-bonds/Added distances only, so this
+    // respects "independent only" the same way those tables do.
+    html += htmlSymmetryNotes(model.symmetryNotes);
   
     if (model.geometryResults.length) {
       html += htmlGeometryTable(
@@ -1566,6 +1637,11 @@
         model.geometryResults,
         model.dataName
       );
+
+      // "independent only" does not apply to the Geometry Parameters
+      // table, so its footnote is scoped to exactly the symmetry codes
+      // used by the ligands actually shown there.
+      html += htmlSymmetryNotes(model.geometrySymmetryNotes);
     }
   
     if (model.ringResults.length) {
@@ -1575,6 +1651,9 @@
         model.ringResults,
         model.dataName
       );
+
+      // Same reasoning as the Geometry Parameters footnote above.
+      html += htmlSymmetryNotes(model.ringSymmetryNotes);
     }
   
     if (model.disorderRows.length) {
@@ -1596,8 +1675,6 @@
     ) {
       html += "<p class=\"hint\">No values selected for the current element/atom selection.</p>";
     }
-  
-    html += htmlSymmetryNotes(model.symmetryNotes);
 
     html += htmlOrtepFigure(model);
   
@@ -1880,6 +1957,10 @@
         model.dataName
       );
     }
+
+    if (model.symmetryNotes.length) {
+      out += markdownSymmetrySentence(model.symmetryNotes) + "\n\n";
+    }
     
     if (model.geometryResults.length) {
       out += mdGeometryTable(
@@ -1888,6 +1969,10 @@
         model.geometryResults,
         model.dataName
       );
+
+      if (model.geometrySymmetryNotes.length) {
+        out += markdownSymmetrySentence(model.geometrySymmetryNotes) + "\n\n";
+      }
     }
     
     if (model.ringResults.length) {
@@ -1897,6 +1982,10 @@
         model.ringResults,
         model.dataName
       );
+
+      if (model.ringSymmetryNotes.length) {
+        out += markdownSymmetrySentence(model.ringSymmetryNotes) + "\n\n";
+      }
     }
     
     if (model.disorderRows.length) {
@@ -1917,10 +2006,6 @@
       !model.disorderRows.length
     ) {
       out += "No values selected for the current element/atom selection.\n\n";
-    }
-
-    if (model.symmetryNotes.length) {
-      out += markdownSymmetrySentence(model.symmetryNotes) + "\n\n";
     }
 
     if (state.reportOptions.showCaption) {
@@ -2407,6 +2492,8 @@
         model.dataName
       );
     }
+
+    out += plainSymmetrySentence(model.symmetryNotes);
     
     if (model.geometryResults.length) {
       out += plainGeometryTable(
@@ -2415,6 +2502,8 @@
         model.geometryResults,
         model.dataName
       );
+
+      out += plainSymmetrySentence(model.geometrySymmetryNotes);
     }
     
     if (model.ringResults.length) {
@@ -2424,6 +2513,8 @@
         model.ringResults,
         model.dataName
       );
+
+      out += plainSymmetrySentence(model.ringSymmetryNotes);
     }
     
     if (model.disorderRows.length) {
@@ -2445,8 +2536,6 @@
     ) {
       out += "No values selected for the current element/atom selection.\n\n";
     }
-
-    out += plainSymmetrySentence(model.symmetryNotes);
 
     if (state.reportOptions.showCaption) {
       out += plainCaption(model, state);
@@ -3171,6 +3260,8 @@
         model.dataName
       );
     }
+
+    body += rtfSymmetryNotes(model.symmetryNotes);
     
     if (model.geometryResults.length) {
       body += rtfGeometryTable(
@@ -3178,6 +3269,8 @@
         state,
         model.geometryResults
       );
+
+      body += rtfSymmetryNotes(model.geometrySymmetryNotes);
     }    
 
     if (model.ringResults.length) {
@@ -3186,6 +3279,8 @@
         state,
         model.ringResults
       );
+
+      body += rtfSymmetryNotes(model.ringSymmetryNotes);
     }    
 
     if (model.disorderRows.length) {
@@ -3195,8 +3290,6 @@
         model.dataName
       );
     }
-
-    body += rtfSymmetryNotes(model.symmetryNotes);
 
     if (state.reportOptions.showCaption) {
       body += rtfBlankLine();

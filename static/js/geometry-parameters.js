@@ -424,6 +424,47 @@
     return note ? note.symbol : String(symCode || "");
   }
 
+  function symmetryOperationHtmlLocal(operation) {
+    return escapeHtml(operation || "").replace(/\b([xyz])\b/g, "<em>$1</em>");
+  }
+
+  function renderGeomSymmetryNotes(state, ligands) {
+    var box = $("geom-symmetry-notes");
+
+    if (!box) {
+      return;
+    }
+
+    var codes = {};
+
+    (ligands || []).forEach(function (ligand) {
+      if (ligand.symCode && !isIdentitySymCode(ligand.symCode)) {
+        codes[ligand.symCode] = true;
+      }
+    });
+
+    var notes = (state.symmetryNotes || []).filter(function (n) {
+      return codes[n.code];
+    });
+
+    if (!notes.length) {
+      box.innerHTML = "";
+      return;
+    }
+
+    var label = notes.length === 1
+      ? "Symmetry transformation used to generate equivalent atoms:"
+      : "Symmetry transformations used to generate equivalent atoms:";
+
+    box.innerHTML =
+      "<h3>Symmetry</h3>" +
+      "<p class=\"hint\"><strong>" + escapeHtml(label) + "</strong> " +
+      notes.map(function (note) {
+        return "(" + escapeHtml(note.symbol) + ") " + symmetryOperationHtmlLocal(note.operation || note.code || "");
+      }).join("; ") +
+      ".</p>";
+  }
+
   function ligandKey(ligand) {
     return [
       ligand.label || "",
@@ -998,16 +1039,19 @@
 
     if (!state.hasLoadedCif) {
       setHTML("geom-ligands", "<p class=\"hint\">No CIF loaded.</p>");
+      renderGeomSymmetryNotes(state, []);
       return;
     }
 
     if (!centerLabel) {
       setHTML("geom-ligands", "<p class=\"hint\">No atom selected.</p>");
+      renderGeomSymmetryNotes(state, []);
       return;
     }
 
     if (!state.bonds || !state.bonds.length) {
       setHTML("geom-ligands", "<p class=\"hint\">No CIF geometry bond table available.</p>");
+      renderGeomSymmetryNotes(state, []);
       return;
     }
 
@@ -1015,6 +1059,7 @@
 
     if (!ligands.length) {
       setHTML("geom-ligands", "<p class=\"hint\">No CIF bond ligands found for the selected atom.</p>");
+      renderGeomSymmetryNotes(state, []);
       return;
     }
 
@@ -1064,6 +1109,8 @@
         "<tbody>" + rows + "</tbody>" +
       "</table>"
     );
+
+    renderGeomSymmetryNotes(state, ligands);
   }
 
   function ligandListHtml(ligands) {

@@ -1241,9 +1241,71 @@
     }).join(" – ");
   }
 
+  // Distinct non-identity symmetry symbols actually used by a ring's atoms,
+  // for scoping the report's ring-table symmetry footnote to what is really
+  // shown (rather than every symmetry code present anywhere in the CIF).
+  function ringSymmetrySymbols(state, nodes) {
+    var seen = {};
+    var symbols = [];
+
+    nodes.forEach(function (node) {
+      var symbol = findSymmetrySymbol(state, node.code);
+
+      if (symbol && !seen[symbol]) {
+        seen[symbol] = true;
+        symbols.push(symbol);
+      }
+    });
+
+    return symbols;
+  }
+
   function unitLabel(state, label, unit) {
     var si = !!(state.reportOptions && state.reportOptions.siUnits);
     return si ? label + " /" + unit : label + " [" + unit + "]";
+  }
+
+  function symmetryOperationHtmlLocal(operation) {
+    return escapeHtml(operation || "").replace(/\b([xyz])\b/g, "<em>$1</em>");
+  }
+
+  function renderRingSymmetryNotes(state, rings) {
+    var box = $("ring-symmetry-notes");
+
+    if (!box) {
+      return;
+    }
+
+    var codes = {};
+
+    (rings || []).forEach(function (ring) {
+      (ring.atoms || []).forEach(function (node) {
+        if (node.code && !isIdentitySymCode(node.code)) {
+          codes[node.code] = true;
+        }
+      });
+    });
+
+    var notes = (state.symmetryNotes || []).filter(function (n) {
+      return codes[n.code];
+    });
+
+    if (!notes.length) {
+      box.innerHTML = "";
+      return;
+    }
+
+    var label = notes.length === 1
+      ? "Symmetry transformation used to generate equivalent atoms:"
+      : "Symmetry transformations used to generate equivalent atoms:";
+
+    box.innerHTML =
+      "<h3>Symmetry</h3>" +
+      "<p class=\"hint\"><strong>" + escapeHtml(label) + "</strong> " +
+      notes.map(function (note) {
+        return "(" + escapeHtml(note.symbol) + ") " + symmetryOperationHtmlLocal(note.operation || note.code || "");
+      }).join("; ") +
+      ".</p>";
   }
 
   function renderControls(state) {
@@ -1264,16 +1326,19 @@
 
     if (!state.hasLoadedCif) {
       setHTML("ring-detected-list", "<p class=\"hint\">No CIF loaded.</p>");
+      renderRingSymmetryNotes(state, []);
       return;
     }
 
     if (!centerLabel) {
       setHTML("ring-detected-list", "<p class=\"hint\">No atom selected.</p>");
+      renderRingSymmetryNotes(state, []);
       return;
     }
 
     if (!state.bonds || !state.bonds.length) {
       setHTML("ring-detected-list", "<p class=\"hint\">No CIF geometry bond table available.</p>");
+      renderRingSymmetryNotes(state, []);
       return;
     }
 
@@ -1284,6 +1349,7 @@
         "ring-detected-list",
         "<p class=\"hint\">No 5- or 6-membered ring found through " + escapeHtml(centerLabel) + ".</p>"
       );
+      renderRingSymmetryNotes(state, []);
       return;
     }
 
@@ -1318,6 +1384,8 @@
         "<tbody>" + rows + "</tbody>" +
       "</table>"
     );
+
+    renderRingSymmetryNotes(state, rings);
   }
 
   function renderResults(state) {
@@ -1402,6 +1470,7 @@
         signature: signature,
         centerLabel: centerLabel,
         atomsHtml: ringLabelHtml(state, orderedNodes),
+        symmetrySymbols: ringSymmetrySymbols(state, orderedNodes),
         reversed: reversed,
         N: pucker.N,
         Q: pucker.Q,
