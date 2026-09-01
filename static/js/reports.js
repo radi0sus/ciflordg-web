@@ -300,11 +300,15 @@
   }
 
   function formatSymmetryOperationHtml(operation) {
-    return escapeHtml(typographicMinus(operation || "")).replace(/([xyz])/g, "<i>$1</i>");
+    return escapeHtml(typographicMinus(operation || "")).replace(/([XYZxyz])/g, function (m) {
+      return "<i>" + m.toLowerCase() + "</i>";
+    });
   }
 
   function formatSymmetryOperationMarkdown(operation) {
-    return typographicMinus(operation || "").replace(/([xyz])/g, "*$1*");
+    return typographicMinus(operation || "").replace(/([XYZxyz])/g, function (m) {
+      return "*" + m.toLowerCase() + "*";
+    });
   }
   
   function decodeHtmlEntities(str) {
@@ -2383,7 +2387,9 @@
 
     var text = notes.map(function (note) {
       return "(" + formatSymmetrySymbolText(note.symbol) + ") " +
-        typographicMinus(note.operation || "");
+        typographicMinus(note.operation || "").replace(/[XYZ]/g, function (m) {
+          return m.toLowerCase();
+        });
     }).join("; ");
 
     return label + " " + text + ".\n\n";
@@ -2722,7 +2728,7 @@
   }
 
   function rtfSymmetryComponent(component) {
-    component = String(component || "").trim().replace(/\s+/g, "");
+    component = String(component || "").trim().replace(/\s+/g, "").toLowerCase();
 
     var m;
     var minus = rtfEscape("–");

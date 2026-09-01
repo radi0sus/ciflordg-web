@@ -808,7 +808,9 @@
 
   function symmetryOperationHtml(operation) {
     return escapeHtml(operation)
-      .replace(/\b([xyz])\b/g, "<em>$1</em>");
+      .replace(/\b([XYZxyz])\b/g, function (m) {
+        return "<em>" + m.toLowerCase() + "</em>";
+      });
   }
 
   function renderSymmetryNotes(fragment) {

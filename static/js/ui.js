@@ -646,7 +646,9 @@
   }
 
   function formatSymmetryOperationHtml(operation) {
-    return escapeHtml(operation || "").replace(/([xyz])/g, "<i>$1</i>");
+    return escapeHtml(operation || "").replace(/([XYZxyz])/g, function (m) {
+      return "<i>" + m.toLowerCase() + "</i>";
+    });
   }
 
   function makeSymmetryBlock(state, items) {

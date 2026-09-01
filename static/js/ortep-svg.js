@@ -860,7 +860,7 @@
   }
 
   function parseSymComponent(component) {
-    component = String(component || "").replace(/\s+/g, "");
+    component = String(component || "").replace(/\s+/g, "").toLowerCase();
 
     var result = {
       x: 0,

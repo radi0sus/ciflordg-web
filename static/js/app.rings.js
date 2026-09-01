@@ -140,7 +140,7 @@
   }
 
   function parseSymComponent(component) {
-    component = String(component || "").replace(/\s+/g, "");
+    component = String(component || "").replace(/\s+/g, "").toLowerCase();
 
     var result = { x: 0, y: 0, z: 0, c: 0 };
 
@@ -1266,7 +1266,9 @@
   }
 
   function symmetryOperationHtmlLocal(operation) {
-    return escapeHtml(operation || "").replace(/\b([xyz])\b/g, "<em>$1</em>");
+    return escapeHtml(operation || "").replace(/\b([XYZxyz])\b/g, function (m) {
+      return "<em>" + m.toLowerCase() + "</em>";
+    });
   }
 
   function renderRingSymmetryNotes(state, rings) {
