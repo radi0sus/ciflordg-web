@@ -639,3 +639,77 @@ For word-processor workflows, use the RTF download where possible. ORTEP plots c
 - Manual Disorder Helper edits are not written back to CIF files.
 - No CIF editing or rewriting is provided.
 - No LaTeX, PDF, DOCX export is provided directly.
+
+## Citations
+
+### Continuous Shape Measures (CShM) and τ geometry indices
+
+The `Geometry Parameters` tab's CShM comparison is based on:
+
+> Mark Pinsky, David Avnir,  
+> "Continuous Symmetry Measures. 5. The Classical Polyhedra",  
+> *Inorganic Chemistry* **1998**, *37*, 5575-5582.  
+> https://doi.org/10.1021/ic9804925
+
+> Santiago Alvarez, Pere Alemany, David Casanova, Jordi Cirera, Miquel Llunell, David Avnir,  
+> "Shape maps and polyhedral interconversion paths in transition metal chemistry",  
+> *Coordination Chemistry Reviews* **2005**, *249*, 1693-1708.  
+> https://doi.org/10.1016/j.ccr.2005.03.031
+
+The ideal reference polyhedra (coordinates) follow the same set used by `cosymlib` and related CShM tools:
+
+> https://github.com/GrupEstructuraElectronicaSimetria/cosymlib/blob/master/cosymlib/shape/ideal_structures_center.yaml
+
+The τ₄, τ₄′ (CN 4) and τ₅ (CN 5) geometry indices are based on:
+
+> Lei Yang, Douglas R. Powell, Robert P. Houser,  
+> "Structural variation in copper(i) complexes with pyridylmethylamide ligands: structural analysis with a new four-coordinate geometry index, τ₄",  
+> *Dalton Transactions* **2007**, 955-964.  
+> https://doi.org/10.1039/B617136B
+
+> Andrzej Okuniewski, Damian Rosiak, Jarosław Chojnacki, Barbara Becker,  
+> "Coordination polymers and molecular structures among complexes of mercury(II) halides with selected 1-benzoylthioureas",  
+> *Polyhedron* **2015**, *90*, 47-57.  
+> https://doi.org/10.1016/j.poly.2015.01.035
+
+> Anthony W. Addison, T. Nageswara Rao, Jan Reedijk, Jacobus van Rijn, Gerrit C. Verschoor,  
+> "Synthesis, structure, and spectroscopic properties of copper(II) compounds containing nitrogen-sulphur donor ligands; the crystal and molecular structure of aqua[1,7-bis(N-methylbenzimidazol-2′-yl)-2,6-dithiaheptane]copper(II) perchlorate",  
+> *Journal of the Chemical Society, Dalton Transactions* **1984**, 1349-1356.  
+> https://doi.org/10.1039/DT9840001349
+
+### Ring puckering analysis (Cremer-Pople) and Evans-Boeyens conformational decomposition
+
+The Cremer-Pople ring puckering parameters (Q, θ, φ₂, q₂, q₃) computed in the `Rings` tab are based on:
+
+> Dieter Cremer, John A. Pople,  
+> "A General Definition of Ring Puckering Coordinates",  
+> *J. Am. Chem. Soc.* **1975**, *97*, 1354-1358.  
+> https://doi.org/10.1021/ja00839a011
+
+The Evans-Boeyens conformational decomposition (percentage character relative to the nearest primitive symmetric forms) is based on:
+
+> Deborah G. Evans, Jan C. A. Boeyens,  
+> "Conformational Analysis of Ring Pucker",  
+> *Acta Cryst.* **1989**, *B45*, 581-590.  
+> https://doi.org/10.1107/S0108768189008190
+
+### PLATON
+
+Several parts of the `Rings` tab were cross-checked against, or follow conventions established by, the program PLATON:
+
+> Anthony L. Spek,  
+> "Single-crystal structure validation with the program PLATON",  
+> *J. Appl. Cryst.* **2003**, *36*, 7-11.  
+> https://doi.org/10.1107/S0021889802022112
+
+Specifically:
+
+- The ring traversal direction convention (canonicalizing by atom index rather than 3D handedness) follows PLATON's PLA078.
+- The estimated standard deviations of the ring puckering parameters are propagated from atomic fractional-coordinate e.s.d.s following PLATON's PLA095, which implements:
+
+  > Rolf Norrestam,  
+  > "Estimates of the standard deviations of ring-puckering coordinates",  
+  > *Acta Cryst.* **1981**, *A37*, 764-765.  
+  > https://doi.org/10.1107/S0567739481001666
+
+- The Evans-Boeyens decomposition was additionally cross-checked against PLATON's PLA218-225 output.
