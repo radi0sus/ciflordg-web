@@ -1296,19 +1296,25 @@
       return atomMatchesSelector(atom, target);
     });
 
-    var codes = [];
-
-    for (var x = 4; x <= 6; x++) {
-      for (var y = 4; y <= 6; y++) {
-        for (var z = 4; z <= 6; z++) {
-          codes.push(String(x) + String(y) + String(z));
-        }
-      }
-    }
-
     originAtoms.forEach(function (atomA) {
       targetAtoms.forEach(function (atomB) {
         symOps.forEach(function (symOp) {
+          var parsedOp = parseSymOperation(symOp.operation);
+          if (!parsedOp) return;
+          var b0 = transformFractional(atomB, parsedOp, "555");
+          var tx = Math.round(atomA.x - b0.x);
+          var ty = Math.round(atomA.y - b0.y);
+          var tz = Math.round(atomA.z - b0.z);
+          var codes = [];
+          for (var ix = -1; ix <= 1; ix++) {
+            for (var iy = -1; iy <= 1; iy++) {
+              for (var iz = -1; iz <= 1; iz++) {
+                var cx = 5 + tx + ix, cy = 5 + ty + iy, cz = 5 + tz + iz;
+                if (cx < 0 || cx > 9 || cy < 0 || cy > 9 || cz < 0 || cz > 9) continue;
+                codes.push(String(cx) + String(cy) + String(cz));
+              }
+            }
+          }
           codes.forEach(function (code) {
             var res = calculateInteratomicDistance(state, {
               atomA: atomA.label,
